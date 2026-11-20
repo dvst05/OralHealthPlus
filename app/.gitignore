@@ -1,1 +1,4 @@
 /build
+*.keras
+.idea/
+local.properties
