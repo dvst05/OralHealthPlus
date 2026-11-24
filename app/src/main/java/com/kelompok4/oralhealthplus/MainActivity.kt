@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,9 +43,11 @@ import com.kelompok4.oralhealthplus.feature.chatbot.ChatbotViewModel
 import com.kelompok4.oralhealthplus.feature.chatbot.HistoryReportRoute
 import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
 import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
+import com.kelompok4.oralhealthplus.feature.clinic.ClinicRoute
 
 enum class AppTab {
     CHATBOT,
+    CLINIC,
     HISTORY,
     ACCOUNT
 }
@@ -111,6 +114,13 @@ fun MainAppHost() {
                         colors = navItemColors
                     )
                     NavigationBarItem(
+                        selected = currentTab == AppTab.CLINIC,
+                        onClick = { currentTab = AppTab.CLINIC },
+                        icon = { Icon(Icons.Filled.LocalHospital, contentDescription = "Klinik") },
+                        label = { Text("Klinik") },
+                        colors = navItemColors
+                    )
+                    NavigationBarItem(
                         selected = currentTab == AppTab.HISTORY,
                         onClick = { currentTab = AppTab.HISTORY },
                         icon = { Icon(Icons.Filled.Assessment, contentDescription = "Riwayat") },
@@ -136,6 +146,9 @@ fun MainAppHost() {
             when (currentTab) {
                 AppTab.CHATBOT -> {
                     ChatbotRoute(vm = chatbotViewModel)
+                }
+                AppTab.CLINIC -> {
+                    ClinicRoute()
                 }
                 AppTab.HISTORY -> {
                     HistoryReportRoute(
