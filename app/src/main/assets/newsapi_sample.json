@@ -1,0 +1,16 @@
+{
+  "_catatan": "DATA CONTOH untuk demo dan pengujian offline. Bentuknya mengikuti respons NewsAPI /v2/everything. Judul dan URL bukan berita nyata.",
+  "status": "ok",
+  "totalResults": 9,
+  "articles": [
+    {"source": {"name": "Contoh Data"}, "title": "Gusi Berdarah? Kenali Gejala Awal Gingivitis", "description": "Gusi berdarah saat menyikat gigi bisa menjadi tanda radang gusi.", "url": "https://example.com/gingivitis-gejala", "urlToImage": null, "publishedAt": "2026-11-18T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "Cara Merawat Gusi agar Tidak Mudah Meradang", "description": "Kebiasaan sederhana untuk mencegah radang gusi.", "url": "https://example.com/merawat-gusi", "urlToImage": null, "publishedAt": "2026-11-05T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "GUSI BERDARAH? Kenali Gejala Awal Gingivitis!", "description": "Duplikat judul dengan penulisan berbeda.", "url": "https://example.com/gingivitis-duplikat", "urlToImage": null, "publishedAt": "2026-11-19T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "Mengenal Karies dan Cara Mencegah Gigi Berlubang", "description": "Karies gigi disebabkan asam dari bakteri dan gula.", "url": "https://example.com/karies", "urlToImage": null, "publishedAt": "2026-11-10T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "Karang Gigi: Kapan Harus Scaling Gigi?", "description": "Plak yang mengeras menjadi karang gigi atau tartar.", "url": "https://example.com/karang-gigi", "urlToImage": null, "publishedAt": "2026-10-01T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "Sariawan Tidak Kunjung Sembuh, Perlu ke Dokter?", "description": "Sebagian besar sariawan sembuh sendiri dalam dua minggu.", "url": "https://example.com/sariawan", "urlToImage": null, "publishedAt": "2026-11-15T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "Penyebab Gigi Kuning dan Cara Mencegahnya", "description": "Kopi, teh, dan rokok dapat membuat noda gigi.", "url": "https://example.com/gigi-kuning", "urlToImage": null, "publishedAt": "2026-11-12T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "Tips Menjaga Kesehatan Gigi dan Mulut Setiap Hari", "description": "Menyikat gigi dua kali sehari adalah dasar kesehatan mulut.", "url": "https://example.com/kesehatan-gigi", "urlToImage": null, "publishedAt": "2026-11-20T08:00:00Z"},
+    {"source": {"name": "Contoh Data"}, "title": "[Removed]", "description": "[Removed]", "url": "https://removed.com", "urlToImage": null, "publishedAt": "2026-11-20T08:00:00Z"}
+  ]
+}
