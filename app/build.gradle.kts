@@ -16,6 +16,10 @@ val geminiApiKey: String = localProps.getProperty("GEMINI_API_KEY", "")
     .trim()
     .removeSurrounding("\"")
     .removeSurrounding("'")
+val newsApiKey: String = localProps.getProperty("NEWS_API_KEY", "")
+    .trim()
+    .removeSurrounding("\"")
+    .removeSurrounding("'")
 
 android {
     namespace = "com.kelompok4.oralhealthplus"
@@ -30,6 +34,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
+        buildConfigField("String", "NEWS_API_KEY", "\"$newsApiKey\"")
     }
 
     buildTypes {
@@ -65,11 +70,14 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.okhttp)
+    implementation(libs.gson)
+    implementation(libs.lottie.compose)
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
