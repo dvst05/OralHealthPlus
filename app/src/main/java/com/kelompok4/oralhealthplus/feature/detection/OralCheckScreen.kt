@@ -45,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 
 /** Layar "Oral Check": kondisi kosong (belum ada foto) dan "Photo ready for analysis". */
 @Composable
@@ -65,7 +67,7 @@ fun OralCheckScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFEFF4FB))
+                    .background(SurfaceBlue)
                     .padding(horizontal = 20.dp, vertical = 8.dp)
             ) {
                 Text(
@@ -162,7 +164,7 @@ private fun FotoSiap(foto: Bitmap, onChangePhoto: () -> Unit) {
     Box(Modifier.fillMaxWidth().height(376.dp).clip(RoundedCornerShape(8.dp))) {
         Image(gambar, "Selected oral photo", Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         StatusChip(
-            "Photo ready for analysis", Color(0xFFF0FFF4), OralColors.Success,
+            "Photo ready for analysis", GreenSoft, OralColors.Success,
             Modifier.align(Alignment.TopStart).padding(12.dp), Icons.Filled.Check
         )
     }

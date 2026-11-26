@@ -76,13 +76,23 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kelompok4.oralhealthplus.data.repository.AuthSession
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedLight
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
+import com.kelompok4.oralhealthplus.ui.theme.LogoutGradient
 
-private val AccPrimaryBlue = Color(0xFF4A628A)
-private val AccBackgroundLight = Color(0xFFF8FAFC)
-private val AccBorderHairline = Color(0xFFE2E8F0)
-private val AccTextPrimary = Color(0xFF0F172A)
-private val AccTextMuted = Color(0xFF475569)
-private val AccDangerRed = Color(0xFF9B1C1C)
+private val AccPrimaryBlue = BluePrimary
+private val AccBackgroundLight = White
+private val AccBorderHairline = SurfaceBlue
+private val AccTextPrimary = BluePrimary
+private val AccTextMuted = BluePrimary
+private val AccDangerRed = RedError
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,9 +159,9 @@ fun AccountProfileScreen(
             if (infoMessage != null) {
                 StatusBanner(
                     message = infoMessage,
-                    containerColor = Color(0xFFE8F5E9),
-                    borderColor = Color(0xFFC8E6C9),
-                    contentColor = Color(0xFF1E6B34),
+                    containerColor = GreenSoft,
+                    borderColor = GreenSuccess.copy(alpha = 0.3f),
+                    contentColor = GreenSuccess,
                     onDismiss = onClearMessages
                 )
             }
@@ -159,8 +169,8 @@ fun AccountProfileScreen(
             if (errorMessage != null) {
                 StatusBanner(
                     message = errorMessage,
-                    containerColor = Color(0xFFFEF2F2),
-                    borderColor = Color(0xFFFECACA),
+                    containerColor = RedSoft,
+                    borderColor = RedLight,
                     contentColor = AccDangerRed,
                     onDismiss = onClearMessages
                 )
@@ -396,9 +406,8 @@ fun AccountProfileScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Button(
+                    GradientFilledButton(
                         onClick = onOpenChatbot,
-                        colors = ButtonDefaults.buttonColors(containerColor = AccPrimaryBlue),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -431,9 +440,9 @@ fun AccountProfileScreen(
                         Text("Lihat Riwayat Pemeriksaan", color = AccTextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
 
-                    OutlinedButton(
+                    GradientFilledButton(
                         onClick = { showLogoutDialog = true },
-                        border = BorderStroke(1.dp, AccDangerRed.copy(alpha = 0.35f)),
+                        brush = LogoutGradient,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -442,11 +451,11 @@ fun AccountProfileScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = null,
-                            tint = AccDangerRed,
+                            tint = Color.White,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Keluar dari Akun", color = AccDangerRed, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                        Text("Keluar dari Akun", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
 
                     OutlinedButton(
@@ -696,9 +705,8 @@ private fun EditProfileDialog(
             }
         },
         confirmButton = {
-            Button(
+            GradientFilledButton(
                 onClick = { onSave(displayName, email, whatsapp) },
-                colors = ButtonDefaults.buttonColors(containerColor = AccPrimaryBlue)
             ) {
                 Text("Simpan")
             }
@@ -779,9 +787,8 @@ private fun ChangePasswordDialog(
             }
         },
         confirmButton = {
-            Button(
+            GradientFilledButton(
                 onClick = { onConfirm(currentPassword, newPassword, confirmPassword) },
-                colors = ButtonDefaults.buttonColors(containerColor = AccPrimaryBlue)
             ) {
                 Text("Ubah Password")
             }

@@ -44,14 +44,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kelompok4.oralhealthplus.data.local.entity.DetectionHistoryEntity
 import java.util.Locale
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.ChipBlue
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.StarAmber
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 
-private val DocPrimaryBlue = Color(0xFF4A628A)
-private val DocBorderHairline = Color(0xFFE2E8F0)
-private val DocTextPrimary = Color(0xFF0F172A)
-private val DocTextMuted = Color(0xFF475569)
-private val DocWhatsAppGreen = Color(0xFF1E6B34)
-private val DocWhatsAppSoftBg = Color(0xFFE8F5E9)
-private val DocStarAmber = Color(0xFFD97706)
+private val DocPrimaryBlue = BluePrimary
+private val DocBorderHairline = SurfaceBlue
+private val DocTextPrimary = BluePrimary
+private val DocTextMuted = BluePrimary
+private val DocWhatsAppGreen = GreenSuccess
+private val DocWhatsAppSoftBg = GreenSoft
+private val DocStarAmber = StarAmber
 
 @Composable
 fun DoctorListSection(
@@ -195,7 +201,7 @@ private fun DoctorCard(
                     }
                 }
                 Surface(
-                    color = if (doctor.isAvailableNow) DocWhatsAppSoftBg else Color(0xFFF1F5F9),
+                    color = if (doctor.isAvailableNow) DocWhatsAppSoftBg else ChipBlue,
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(

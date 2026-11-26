@@ -53,12 +53,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
-private val RegPrimaryBlue = Color(0xFF4A628A)
-private val RegBackgroundLight = Color(0xFFF8FAFC)
-private val RegBorderHairline = Color(0xFFE2E8F0)
-private val RegTextPrimary = Color(0xFF0F172A)
-private val RegTextMuted = Color(0xFF475569)
+private val RegPrimaryBlue = BluePrimary
+private val RegBackgroundLight = White
+private val RegBorderHairline = SurfaceBlue
+private val RegTextPrimary = BluePrimary
+private val RegTextMuted = BluePrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -258,12 +266,12 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                            colors = CardDefaults.cardColors(containerColor = RedSoft),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
                                 text = uiState.errorMessage,
-                                color = Color(0xFF9B1C1C),
+                                color = RedError,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(12.dp)
                             )
@@ -274,12 +282,12 @@ fun RegisterScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                            colors = CardDefaults.cardColors(containerColor = GreenSoft),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Text(
                                 text = uiState.infoMessage,
-                                color = Color(0xFF2E7D32),
+                                color = GreenSuccess,
                                 fontSize = 13.sp,
                                 modifier = Modifier.padding(12.dp)
                             )
@@ -288,12 +296,11 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    Button(
+                    GradientFilledButton(
                         onClick = {
                             onRegister(username, displayName, email, password, confirmPassword, verificationCode)
                         },
                         enabled = !uiState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = RegPrimaryBlue),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()

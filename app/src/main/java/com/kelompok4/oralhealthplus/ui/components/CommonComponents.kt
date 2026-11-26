@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -23,12 +25,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.kelompok4.oralhealthplus.ui.theme.BlueLight
+import com.kelompok4.oralhealthplus.ui.theme.GreyDisabled
+import com.kelompok4.oralhealthplus.ui.theme.GreyDisabledText
 import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
 import com.kelompok4.oralhealthplus.ui.theme.PrimaryGradient
 
@@ -101,6 +107,37 @@ fun GradientButton(
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, color = Color.White)
     }
+}
+
+/**
+ * Pengganti Button biasa yang latarnya gradien (sesuai Figma).
+ * Parameternya sama dengan Button, jadi cukup ganti "Button(" menjadi "GradientFilledButton(" dan hapus baris "colors = ...".
+ * Untuk tombol Logout: brush = LogoutGradient.
+ */
+@Composable
+fun GradientFilledButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    shape: Shape = RoundedCornerShape(30.dp),
+    brush: Brush = PrimaryGradient,
+    contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
+    content: @Composable RowScope.() -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.clip(shape).background(if (enabled) brush else SolidColor(GreyDisabled), shape),
+        enabled = enabled,
+        shape = shape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Transparent,
+            contentColor = Color.White,
+            disabledContainerColor = Color.Transparent,
+            disabledContentColor = GreyDisabledText,
+        ),
+        contentPadding = contentPadding,
+        content = content,
+    )
 }
 
 /** Chip label kecil: "Article", "Video", "Certainty 87%". */

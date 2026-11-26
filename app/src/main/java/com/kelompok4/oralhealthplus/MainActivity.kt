@@ -76,6 +76,9 @@ import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicRoute
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicSection
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicViewModel
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 enum class AppTab {
     HOME,
@@ -92,9 +95,9 @@ sealed interface LayarPenuh {
     data object Ensiklopedia : LayarPenuh
 }
 
-private val NavPrimaryBlue = Color(0xFF4A628A)
-private val NavBorderHairline = Color(0xFFE2E8F0)
-private val NavTextMuted = Color(0xFF475569)
+private val NavPrimaryBlue = BluePrimary
+private val NavBorderHairline = SurfaceBlue
+private val NavTextMuted = BluePrimary
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -416,9 +419,8 @@ fun MainAppHost() {
                 title = { Text("Perlu Masuk Akun", fontWeight = FontWeight.SemiBold) },
                 text = { Text(gateMessage) },
                 confirmButton = {
-                    Button(
+                    GradientFilledButton(
                         onClick = { openLoginFromGate() },
-                        colors = ButtonDefaults.buttonColors(containerColor = NavPrimaryBlue)
                     ) {
                         Text("Masuk / Daftar")
                     }

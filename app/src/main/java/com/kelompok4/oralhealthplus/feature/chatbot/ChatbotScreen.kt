@@ -72,12 +72,23 @@ import androidx.compose.ui.unit.sp
 import com.kelompok4.oralhealthplus.data.local.entity.ChatMessageEntity
 import com.kelompok4.oralhealthplus.data.local.entity.DetectionHistoryEntity
 import java.util.Locale
+import com.kelompok4.oralhealthplus.ui.theme.AmberSoft
+import com.kelompok4.oralhealthplus.ui.theme.AmberText
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedLight
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
-private val ChatPrimaryBlue = Color(0xFF4A628A)
-private val ChatBackgroundLight = Color(0xFFF8FAFC)
-private val ChatBorderHairline = Color(0xFFE2E8F0)
-private val ChatTextPrimary = Color(0xFF0F172A)
-private val ChatTextMuted = Color(0xFF475569)
+private val ChatPrimaryBlue = BluePrimary
+private val ChatBackgroundLight = White
+private val ChatBorderHairline = SurfaceBlue
+private val ChatTextPrimary = BluePrimary
+private val ChatTextMuted = BluePrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,12 +176,12 @@ fun ChatbotScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFFFFF0F0))
+                                    .background(RedSoft)
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
                                 Text(
                                     text = uiState.suspensionMessage ?: "Akses Chatbot sedang ditangguhkan.",
-                                    color = Color(0xFF9B1C1C),
+                                    color = RedError,
                                     fontSize = 13.sp,
                                     lineHeight = 18.sp,
                                     fontWeight = FontWeight.Medium
@@ -360,7 +371,7 @@ private fun GuestChatLockoutBar(onOpenLogin: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF8FAFC))
+            .background(White)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -388,9 +399,8 @@ private fun GuestChatLockoutBar(onOpenLogin: () -> Unit) {
             lineHeight = 17.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
-        Button(
+        GradientFilledButton(
             onClick = onOpenLogin,
-            colors = ButtonDefaults.buttonColors(containerColor = ChatPrimaryBlue),
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -415,8 +425,8 @@ private fun SevereCaseEscalationCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-        border = BorderStroke(1.dp, Color(0xFFFECACA))
+        colors = CardDefaults.cardColors(containerColor = RedSoft),
+        border = BorderStroke(1.dp, RedLight)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -426,13 +436,13 @@ private fun SevereCaseEscalationCard(
                 Icon(
                     imageVector = Icons.Filled.Warning,
                     contentDescription = null,
-                    tint = Color(0xFF991B1B),
+                    tint = RedError,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Indikasi Kasus Berat Terdeteksi",
-                    color = Color(0xFF991B1B),
+                    color = RedError,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.weight(1f)
@@ -441,7 +451,7 @@ private fun SevereCaseEscalationCard(
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Tutup saran darurat",
-                        tint = Color(0xFF991B1B),
+                        tint = RedError,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -449,7 +459,7 @@ private fun SevereCaseEscalationCard(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = reason,
-                color = Color(0xFF7F1D1D),
+                color = RedError,
                 fontSize = 12.sp,
                 lineHeight = 17.sp
             )
@@ -460,7 +470,7 @@ private fun SevereCaseEscalationCard(
             ) {
                 Button(
                     onClick = onOpenDoctors,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E6B34)),
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenSuccess),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f)
@@ -475,7 +485,7 @@ private fun SevereCaseEscalationCard(
                 }
                 OutlinedButton(
                     onClick = onOpenClinics,
-                    border = BorderStroke(1.dp, Color(0xFF991B1B)),
+                    border = BorderStroke(1.dp, RedError),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f)
@@ -483,11 +493,11 @@ private fun SevereCaseEscalationCard(
                     Icon(
                         imageVector = Icons.Filled.LocalHospital,
                         contentDescription = null,
-                        tint = Color(0xFF991B1B),
+                        tint = RedError,
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Klinik Terdekat", color = Color(0xFF991B1B), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    Text("Klinik Terdekat", color = RedError, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -512,10 +522,10 @@ private fun DetectionContextBanner(
         if (latestDetection != null) {
             val confidenceStr = String.format(Locale.US, "%.1f%%", latestDetection.confidence * 100f)
             val (urgLabel, urgBg, urgFg) = when (latestDetection.urgensi.uppercase()) {
-                "EDUKASI_MANDIRI" -> Triple("Edukasi Mandiri", Color(0xFFE8F5E9), Color(0xFF1E6B34))
-                "KONTROL_RUTIN" -> Triple("Kontrol Rutin", Color(0xFFFFF0CC), Color(0xFF6B4200))
-                "SEGERA_KE_DOKTER" -> Triple("Segera ke Dokter", Color(0xFFFFEBEE), Color(0xFF9B1C1C))
-                else -> Triple(latestDetection.urgensi, Color(0xFFE2E8F0), ChatTextPrimary)
+                "EDUKASI_MANDIRI" -> Triple("Edukasi Mandiri", GreenSoft, GreenSuccess)
+                "KONTROL_RUTIN" -> Triple("Kontrol Rutin", AmberSoft, AmberText)
+                "SEGERA_KE_DOKTER" -> Triple("Segera ke Dokter", RedSoft, RedError)
+                else -> Triple(latestDetection.urgensi, SurfaceBlue, ChatTextPrimary)
             }
             Column(modifier = Modifier.padding(12.dp)) {
                 Row(
@@ -623,8 +633,8 @@ private fun ChatSecurityWarningBanner(message: String, onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
-        border = BorderStroke(1.dp, Color(0xFFFFE082))
+        colors = CardDefaults.cardColors(containerColor = AmberSoft),
+        border = BorderStroke(1.dp, AmberText.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier
@@ -632,17 +642,17 @@ private fun ChatSecurityWarningBanner(message: String, onDismiss: () -> Unit) {
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFB78103), modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = AmberText, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = message,
-                color = Color(0xFF7A5400),
+                color = AmberText,
                 fontSize = 12.sp,
                 lineHeight = 16.sp,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Tutup peringatan", tint = Color(0xFF7A5400), modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Close, contentDescription = "Tutup peringatan", tint = AmberText, modifier = Modifier.size(16.dp))
             }
         }
     }
@@ -655,7 +665,7 @@ private fun ChatErrorBanner(message: String, onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+        colors = CardDefaults.cardColors(containerColor = RedSoft)
     ) {
         Row(
             modifier = Modifier
@@ -663,16 +673,16 @@ private fun ChatErrorBanner(message: String, onDismiss: () -> Unit) {
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFF9B1C1C), modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = RedError, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = message,
-                color = Color(0xFF9B1C1C),
+                color = RedError,
                 fontSize = 12.sp,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Tutup galat", tint = Color(0xFF9B1C1C), modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Close, contentDescription = "Tutup galat", tint = RedError, modifier = Modifier.size(16.dp))
             }
         }
     }
