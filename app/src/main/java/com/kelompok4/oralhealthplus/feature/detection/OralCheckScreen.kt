@@ -55,10 +55,31 @@ fun OralCheckScreen(
     onTakePhoto: () -> Unit,
     onGallery: () -> Unit,
     onChangePhoto: () -> Unit,
-    onAnalyze: () -> Unit
+    onAnalyze: () -> Unit,
+    isGuest: Boolean = false,
+    remainingGuestAnalyses: Int = 1
 ) {
     Column(Modifier.fillMaxSize().background(Color.White).statusBarsPadding()) {
         OralHeader("Oral Check", onBack)
+        if (isGuest) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFEFF4FB))
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = if (remainingGuestAnalyses > 0) {
+                        "Mode Tamu: Tersisa $remainingGuestAnalyses kesempatan scan & analisis gratis. Login untuk akses tanpa batas."
+                    } else {
+                        "Kuota scan & analisis tamu telah habis. Silakan login untuk analisis lebih lanjut."
+                    },
+                    color = OralColors.Primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally

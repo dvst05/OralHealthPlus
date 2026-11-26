@@ -157,4 +157,49 @@ class ContextualPromptBuilderTest {
         assertTrue(instruction.contains("dokter gigi") || instruction.contains("ahli"))
         assertTrue(instruction.contains("resep") || instruction.contains("antibiotik"))
     }
+
+    @Test
+    fun assessCaseSeverity_detectsSevereSymptomsAndHighUrgencyScan() {
+        val severeByText = ContextualPromptBuilder.assessCaseSeverity(
+            userQuestion = "Pipi saya bengkak parah dan keluar nanah disertai demam",
+            latestDetection = null
+        )
+        assertEquals(CaseSeverity.SEVERE_URGENT, severeByText.severity)
+        assertTrue(severeByText.matchedIndicators.contains("bengkak"))
+        assertTrue(severeByText.reasonSummary?.contains("dokter gigi") == true)
+
+        val urgentScan = DetectionHistoryEntity(
+            id = 9,
+            username = "guest",
+            kelas = "Caries",
+            confidence = 0.92f,
+            urgensi = "SEGERA_KE_DOKTER",
+            deskripsi = "Karies berat",
+            catatanKeluhan = ""
+        )
+        val severeByScan = ContextualPromptBuilder.assessCaseSeverity(
+            userQuestion = "Apa yang harus saya lakukan?",
+            latestDetection = urgentScan
+        )
+        assertEquals(CaseSeverity.SEVERE_URGENT, severeByScan.severity)
+
+        val normal = ContextualPromptBuilder.assessCaseSeverity(
+            userQuestion = "Berapa kali sehari sebaiknya menyikat gigi?",
+            latestDetection = null
+        )
+        assertEquals(CaseSeverity.NORMAL, normal.severity)
+    }
+
+    @Test
+    fun build_severeCase_advisesContactingDoctorAndNearestClinic() {
+        val payload = ContextualPromptBuilder.build(
+            latestDetection = null,
+            userQuestion = "Gigi patah dan gusi berdarah terus sejak kecelakaan tadi",
+            isFirstTurn = true
+        )
+        assertEquals(CaseSeverity.SEVERE_URGENT, payload.severityAssessment.severity)
+        assertTrue(payload.systemInstruction.contains("KASUS BERAT"))
+        assertTrue(payload.systemInstruction.contains("Hubungi Dokter"))
+        assertTrue(payload.systemInstruction.contains("Klinik Terdekat"))
+    }
 }

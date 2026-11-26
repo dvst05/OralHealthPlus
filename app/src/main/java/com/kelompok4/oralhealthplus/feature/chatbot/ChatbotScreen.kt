@@ -26,11 +26,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,14 +44,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import com.kelompok4.oralhealthplus.feature.auth.GuestAccessPolicy
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -80,6 +89,12 @@ fun ChatbotScreen(
     onClearChat: () -> Unit,
     onClearError: () -> Unit,
     onClearSecurityWarning: () -> Unit = {},
+    onDismissSevereAlert: () -> Unit = {},
+    onResetDetectionReference: () -> Unit = {},
+    onOpenLogin: () -> Unit = {},
+    onOpenScan: () -> Unit = {},
+    onOpenDoctors: () -> Unit = {},
+    onOpenClinics: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -145,64 +160,70 @@ fun ChatbotScreen(
             ) {
                 Column(modifier = Modifier.navigationBarsPadding()) {
                     HorizontalDivider(color = ChatBorderHairline)
-                    if (uiState.isSuspended) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFFFFF0F0))
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
-                        ) {
-                            Text(
-                                text = uiState.suspensionMessage ?: "Akses Chatbot sedang ditangguhkan.",
-                                color = Color(0xFF9B1C1C),
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = inputText,
-                                onValueChange = { inputText = it.take(1000) },
-                                placeholder = { Text("Tanyakan keluhan atau perawatan gigi...", fontSize = 14.sp) },
-                                maxLines = 3,
-                                shape = RoundedCornerShape(14.dp),
-                                enabled = !uiState.isSending,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            IconButton(
-                                onClick = {
-                                    val text = inputText.trim()
-                                    if (text.isNotEmpty() && !uiState.isSending) {
-                                        onSendMessage(text)
-                                        inputText = ""
-                                    }
-                                },
-                                enabled = inputText.isNotBlank() && !uiState.isSending,
+                    when {
+                        uiState.isSuspended -> {
+                            Box(
                                 modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (inputText.isNotBlank() && !uiState.isSending) {
-                                            ChatPrimaryBlue
-                                        } else {
-                                            ChatBorderHairline
-                                        }
-                                    )
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFFFF0F0))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Send,
-                                    contentDescription = "Kirim pesan",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
+                                Text(
+                                    text = uiState.suspensionMessage ?: "Akses Chatbot sedang ditangguhkan.",
+                                    color = Color(0xFF9B1C1C),
+                                    fontSize = 13.sp,
+                                    lineHeight = 18.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
+                            }
+                        }
+                        uiState.isGuestChatLimitReached -> {
+                            GuestChatLockoutBar(onOpenLogin = onOpenLogin)
+                        }
+                        else -> {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = inputText,
+                                    onValueChange = { inputText = it.take(1000) },
+                                    placeholder = { Text("Tanyakan keluhan atau perawatan gigi...", fontSize = 14.sp) },
+                                    maxLines = 3,
+                                    shape = RoundedCornerShape(14.dp),
+                                    enabled = !uiState.isSending,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                IconButton(
+                                    onClick = {
+                                        val text = inputText.trim()
+                                        if (text.isNotEmpty() && !uiState.isSending) {
+                                            onSendMessage(text)
+                                            inputText = ""
+                                        }
+                                    },
+                                    enabled = inputText.isNotBlank() && !uiState.isSending,
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (inputText.isNotBlank() && !uiState.isSending) {
+                                                ChatPrimaryBlue
+                                            } else {
+                                                ChatBorderHairline
+                                            }
+                                        )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Kirim pesan",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -215,11 +236,34 @@ fun ChatbotScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            DetectionContextBanner(latestDetection = latestDetection)
+            if (uiState.isGuest && !uiState.isGuestChatLimitReached) {
+                GuestQuotaStrip(
+                    remaining = uiState.remainingGuestQuestions,
+                    maxQuestions = GuestAccessPolicy.MAX_GUEST_CHAT_QUESTIONS,
+                    onOpenLogin = onOpenLogin
+                )
+            }
 
-            if (uiState.quickPrompts.isNotEmpty()) {
+            DetectionContextBanner(
+                latestDetection = latestDetection,
+                hasCustomSelected = uiState.hasCustomSelectedDetection,
+                onResetReference = onResetDetectionReference,
+                onOpenScan = onOpenScan
+            )
+
+            if (uiState.isSevereCaseDetected) {
+                SevereCaseEscalationCard(
+                    reason = uiState.severeCaseReason
+                        ?: "Gejala atau hasil scan menunjukkan indikasi kasus berat. Segera hubungi dokter gigi atau cari klinik terdekat.",
+                    onOpenDoctors = onOpenDoctors,
+                    onOpenClinics = onOpenClinics,
+                    onDismiss = onDismissSevereAlert
+                )
+            }
+
+            if (uiState.quickPrompts.isNotEmpty() && !uiState.isGuestChatLimitReached && !uiState.isSuspended) {
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(uiState.quickPrompts) { prompt ->
@@ -274,7 +318,189 @@ fun ChatbotScreen(
 }
 
 @Composable
-private fun DetectionContextBanner(latestDetection: DetectionHistoryEntity?) {
+private fun GuestQuotaStrip(
+    remaining: Int,
+    maxQuestions: Int,
+    onOpenLogin: () -> Unit
+) {
+    Surface(
+        color = ChatPrimaryBlue.copy(alpha = 0.08f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Mode Tamu • Sisa $remaining dari $maxQuestions pertanyaan gratis",
+                color = ChatPrimaryBlue,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+            TextButton(
+                onClick = onOpenLogin,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+            ) {
+                Text(
+                    text = "Masuk",
+                    color = ChatPrimaryBlue,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuestChatLockoutBar(onOpenLogin: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF8FAFC))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Filled.Lock,
+                contentDescription = null,
+                tint = ChatPrimaryBlue,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Batas 3 Pertanyaan Tamu Tercapai",
+                color = ChatTextPrimary,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Masuk atau daftar akun untuk melanjutkan konsultasi Dokter Gigi Virtual tanpa batas.",
+            color = ChatTextMuted,
+            fontSize = 12.sp,
+            textAlign = TextAlign.Center,
+            lineHeight = 17.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        Button(
+            onClick = onOpenLogin,
+            colors = ButtonDefaults.buttonColors(containerColor = ChatPrimaryBlue),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                text = "Masuk / Daftar Sekarang",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun SevereCaseEscalationCard(
+    reason: String,
+    onOpenDoctors: () -> Unit,
+    onOpenClinics: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+        border = BorderStroke(1.dp, Color(0xFFFECACA))
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Warning,
+                    contentDescription = null,
+                    tint = Color(0xFF991B1B),
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Indikasi Kasus Berat Terdeteksi",
+                    color = Color(0xFF991B1B),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Tutup saran darurat",
+                        tint = Color(0xFF991B1B),
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = reason,
+                color = Color(0xFF7F1D1D),
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = onOpenDoctors,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E6B34)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Chat,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Hubungi Dokter", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+                OutlinedButton(
+                    onClick = onOpenClinics,
+                    border = BorderStroke(1.dp, Color(0xFF991B1B)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalHospital,
+                        contentDescription = null,
+                        tint = Color(0xFF991B1B),
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Klinik Terdekat", color = Color(0xFF991B1B), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetectionContextBanner(
+    latestDetection: DetectionHistoryEntity?,
+    hasCustomSelected: Boolean,
+    onResetReference: () -> Unit,
+    onOpenScan: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -299,10 +525,10 @@ private fun DetectionContextBanner(latestDetection: DetectionHistoryEntity?) {
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Konteks Deteksi Terakhir",
-                            color = ChatTextMuted,
+                            text = if (hasCustomSelected) "Referensi Scan Dipilih" else "Referensi Scan Mulut Aktif",
+                            color = ChatPrimaryBlue,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
+                            fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             text = "${latestDetection.kelas.replace("_", " ")} ($confidenceStr)",
@@ -327,10 +553,26 @@ private fun DetectionContextBanner(latestDetection: DetectionHistoryEntity?) {
                         fontSize = 12.sp
                     )
                 }
+                if (hasCustomSelected) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TextButton(
+                        onClick = onResetReference,
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = "Gunakan hasil scan terbaru",
+                            color = ChatPrimaryBlue,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
         } else {
             Row(
-                modifier = Modifier.padding(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -340,7 +582,7 @@ private fun DetectionContextBanner(latestDetection: DetectionHistoryEntity?) {
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Mode Konsultasi Umum",
                         color = ChatTextPrimary,
@@ -348,10 +590,26 @@ private fun DetectionContextBanner(latestDetection: DetectionHistoryEntity?) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "Belum ada riwayat deteksi foto mulut tersimpan.",
+                        text = "Lakukan scan mulut agar AI memahami kondisi gigi Anda.",
                         color = ChatTextMuted,
                         fontSize = 12.sp
                     )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                OutlinedButton(
+                    onClick = onOpenScan,
+                    border = BorderStroke(1.dp, ChatPrimaryBlue),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.CameraAlt,
+                        contentDescription = null,
+                        tint = ChatPrimaryBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Scan", color = ChatPrimaryBlue, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

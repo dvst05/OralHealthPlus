@@ -65,6 +65,7 @@ fun HomeScreen(
     onChatbot: () -> Unit,
     onPengaturan: () -> Unit,
     onToothpaste: (() -> Unit)? = null, // null = kartu pasta gigi disembunyikan
+    onDoctors: (() -> Unit)? = null
 ) {
     Column(
         Modifier
@@ -77,7 +78,7 @@ fun HomeScreen(
         Header(namaPengguna, onPengaturan)
         KartuScan(onScan)
         BagianLearn(onClinic, onVideos, onArticles, onReport)
-        BagianMoreFeature(onChatbot, onToothpaste)
+        BagianMoreFeature(onChatbot, onToothpaste, onDoctors)
     }
 }
 
@@ -160,7 +161,11 @@ private fun MenuLearn(@DrawableRes ikon: Int, label: String, onClick: () -> Unit
 }
 
 @Composable
-private fun BagianMoreFeature(onChatbot: () -> Unit, onToothpaste: (() -> Unit)?) {
+private fun BagianMoreFeature(
+    onChatbot: () -> Unit,
+    onToothpaste: (() -> Unit)?,
+    onDoctors: (() -> Unit)? = null
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         JudulBagian("More Feature")
         Text(
@@ -169,6 +174,9 @@ private fun BagianMoreFeature(onChatbot: () -> Unit, onToothpaste: (() -> Unit)?
         )
         Spacer(Modifier.height(4.dp))
         KartuFitur(R.drawable.home_chatbot, "Chatbot Consultant", "Discuss Anything About Oral Disease", onChatbot)
+        if (onDoctors != null) {
+            KartuFitur(R.drawable.home_clinic, "Hubungi Dokter Gigi (WA)", "Pilih dokter gigi & konsultasi langsung via WhatsApp", onDoctors)
+        }
         if (onToothpaste != null) {
             KartuFitur(R.drawable.home_toothpaste, "Are you still using regular toothpaste?", "Choose the one that’s right for you", onToothpaste)
         }
