@@ -61,12 +61,21 @@ import com.kelompok4.oralhealthplus.data.local.entity.DetectionHistoryEntity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.kelompok4.oralhealthplus.ui.theme.AmberSoft
+import com.kelompok4.oralhealthplus.ui.theme.AmberText
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
 
-private val HistPrimaryBlue = Color(0xFF4A628A)
-private val HistBackgroundLight = Color(0xFFF8FAFC)
-private val HistBorderHairline = Color(0xFFE2E8F0)
-private val HistTextPrimary = Color(0xFF0F172A)
-private val HistTextMuted = Color(0xFF475569)
+private val HistPrimaryBlue = BluePrimary
+private val HistBackgroundLight = White
+private val HistBorderHairline = SurfaceBlue
+private val HistTextPrimary = BluePrimary
+private val HistTextMuted = BluePrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,7 +132,7 @@ fun HistoryReportScreen(
                             Icon(
                                 imageVector = Icons.Filled.DeleteSweep,
                                 contentDescription = "Hapus semua riwayat",
-                                tint = Color(0xFF9B1C1C)
+                                tint = RedError
                             )
                         }
                     }
@@ -176,7 +185,7 @@ fun HistoryReportScreen(
                         showClearAllDialog = false
                         onDeleteAll()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9B1C1C))
+                    colors = ButtonDefaults.buttonColors(containerColor = RedError)
                 ) {
                     Text("Hapus Semua")
                 }
@@ -362,7 +371,7 @@ private fun HistoryReportCard(
                 }
 
                 IconButton(onClick = onDeleteClick) {
-                    Icon(Icons.Filled.Delete, contentDescription = "Hapus riwayat", tint = Color(0xFF9B1C1C))
+                    Icon(Icons.Filled.Delete, contentDescription = "Hapus riwayat", tint = RedError)
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -385,10 +394,10 @@ private fun HistoryReportCard(
 @Composable
 private fun UrgensiPill(urgensi: String) {
     val (label, bg, fg) = when (urgensi.uppercase()) {
-        "EDUKASI_MANDIRI" -> Triple("Edukasi Mandiri", Color(0xFFE8F5E9), Color(0xFF1E6B34))
-        "KONTROL_RUTIN" -> Triple("Kontrol Rutin", Color(0xFFFFF0CC), Color(0xFF6B4200))
-        "SEGERA_KE_DOKTER" -> Triple("Segera ke Dokter", Color(0xFFFFEBEE), Color(0xFF9B1C1C))
-        else -> Triple(urgensi, Color(0xFFE2E8F0), HistTextPrimary)
+        "EDUKASI_MANDIRI" -> Triple("Edukasi Mandiri", GreenSoft, GreenSuccess)
+        "KONTROL_RUTIN" -> Triple("Kontrol Rutin", AmberSoft, AmberText)
+        "SEGERA_KE_DOKTER" -> Triple("Segera ke Dokter", RedSoft, RedError)
+        else -> Triple(urgensi, SurfaceBlue, HistTextPrimary)
     }
 
     Box(

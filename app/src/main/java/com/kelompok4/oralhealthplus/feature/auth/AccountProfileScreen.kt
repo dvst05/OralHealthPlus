@@ -76,13 +76,21 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kelompok4.oralhealthplus.data.repository.AuthSession
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedLight
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
 
-private val AccPrimaryBlue = Color(0xFF4A628A)
-private val AccBackgroundLight = Color(0xFFF8FAFC)
-private val AccBorderHairline = Color(0xFFE2E8F0)
-private val AccTextPrimary = Color(0xFF0F172A)
-private val AccTextMuted = Color(0xFF475569)
-private val AccDangerRed = Color(0xFF9B1C1C)
+private val AccPrimaryBlue = BluePrimary
+private val AccBackgroundLight = White
+private val AccBorderHairline = SurfaceBlue
+private val AccTextPrimary = BluePrimary
+private val AccTextMuted = BluePrimary
+private val AccDangerRed = RedError
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,9 +157,9 @@ fun AccountProfileScreen(
             if (infoMessage != null) {
                 StatusBanner(
                     message = infoMessage,
-                    containerColor = Color(0xFFE8F5E9),
-                    borderColor = Color(0xFFC8E6C9),
-                    contentColor = Color(0xFF1E6B34),
+                    containerColor = GreenSoft,
+                    borderColor = GreenSuccess.copy(alpha = 0.3f),
+                    contentColor = GreenSuccess,
                     onDismiss = onClearMessages
                 )
             }
@@ -159,8 +167,8 @@ fun AccountProfileScreen(
             if (errorMessage != null) {
                 StatusBanner(
                     message = errorMessage,
-                    containerColor = Color(0xFFFEF2F2),
-                    borderColor = Color(0xFFFECACA),
+                    containerColor = RedSoft,
+                    borderColor = RedLight,
                     contentColor = AccDangerRed,
                     onDismiss = onClearMessages
                 )

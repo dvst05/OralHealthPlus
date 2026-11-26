@@ -45,6 +45,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kelompok4.oralhealthplus.ui.theme.AmberSoft
+import com.kelompok4.oralhealthplus.ui.theme.AmberText
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
 
 /** Satu baris rekomendasi edukasi. Diisi dari Fungsi 4 (Anggota 4); kosong = hanya tombol menuju layar edukasi. */
 data class EduItem(val jenis: Jenis, val judul: String, val url: String? = null) {
@@ -54,9 +60,9 @@ data class EduItem(val jenis: Jenis, val judul: String, val url: String? = null)
 private data class UrgensiUi(val label: String, val bg: Color, val fg: Color, val ikon: ImageVector)
 
 private fun Urgensi.ui() = when (this) {
-    Urgensi.EDUKASI_MANDIRI -> UrgensiUi("Self-care", Color(0xFFE8F5E9), Color(0xFF1E6B34), Icons.Filled.Check)
-    Urgensi.KONTROL_RUTIN -> UrgensiUi("Routine Check-up", Color(0xFFFFF0CC), Color(0xFF6B4200), Icons.Filled.Schedule)
-    Urgensi.SEGERA_KE_DOKTER -> UrgensiUi("See a Doctor ASAP", Color(0xFFFFEBEE), Color(0xFF9B1C1C), Icons.Filled.Warning)
+    Urgensi.EDUKASI_MANDIRI -> UrgensiUi("Self-care", GreenSoft, GreenSuccess, Icons.Filled.Check)
+    Urgensi.KONTROL_RUTIN -> UrgensiUi("Routine Check-up", AmberSoft, AmberText, Icons.Filled.Schedule)
+    Urgensi.SEGERA_KE_DOKTER -> UrgensiUi("See a Doctor ASAP", RedSoft, RedError, Icons.Filled.Warning)
 }
 
 /** SEMENTARA. Ganti dengan data ensiklopedia JSON dari Anggota 4. */
@@ -151,10 +157,10 @@ fun DetectionResultScreen(
             if (urgensi == Urgensi.SEGERA_KE_DOKTER) {   // <<extend>> use case: klinik terdekat & WhatsApp dokter
                 Card(
                     Modifier.fillMaxWidth().padding(top = 14.dp).clickable(onClick = onHubungiDokter),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), shape = RoundedCornerShape(14.dp)
+                    colors = CardDefaults.cardColors(containerColor = GreenSoft), shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(
-                        "Hubungi Dokter Gigi via WhatsApp", color = Color(0xFF1E6B34), fontSize = 14.sp,
+                        "Hubungi Dokter Gigi via WhatsApp", color = GreenSuccess, fontSize = 14.sp,
                         fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp)
                     )
                 }
@@ -258,16 +264,16 @@ private fun PesanLayar(judul: String, isi: String, tombol: String, onTombol: () 
         ) {
             Card(
                 Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0CC))
+                colors = CardDefaults.cardColors(containerColor = AmberSoft)
             ) {
                 Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.Warning, null, tint = Color(0xFF6B4200), modifier = Modifier.size(32.dp))
+                    Icon(Icons.Filled.Warning, null, tint = AmberText, modifier = Modifier.size(32.dp))
                     Text(
-                        judul, color = Color(0xFF6B4200), fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                        judul, color = AmberText, fontSize = 16.sp, fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp)
                     )
                     Text(
-                        isi, color = Color(0xFF6B4200), fontSize = 13.sp, textAlign = TextAlign.Center,
+                        isi, color = AmberText, fontSize = 13.sp, textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = 6.dp)
                     )
                 }

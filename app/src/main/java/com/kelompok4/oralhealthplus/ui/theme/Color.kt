@@ -28,3 +28,12 @@ val PrimaryGradient = Brush.horizontalGradient(listOf(BluePrimary, BlueLight))
 
 // Gradien tombol Logout di layar Profil, dari kiri ke kanan
 val LogoutGradient = Brush.horizontalGradient(listOf(RedError, RedLight))
+
+// Turunan warna Figma untuk kotak status (latar lembut). Tidak ada di Figma, dibuat dari warna statusnya.
+val GreenSoft = Color(0xFFE6F4E8)        // latar kotak sukses / "Buka" (dari GreenSuccess)
+val RedSoft = Color(0xFFFDECEA)          // latar kotak error / "Tutup" / darurat (dari RedError)
+
+// Warna pendukung yang tidak ada di Figma
+val StarAmber = Color(0xFFD97706)        // bintang rating klinik dan dokter
+val GreyDisabled = Color(0xFFE5E5E5)     // latar tombol nonaktif
+val GreyDisabledText = Color(0xFF9A9A9A) // teks tombol nonaktif

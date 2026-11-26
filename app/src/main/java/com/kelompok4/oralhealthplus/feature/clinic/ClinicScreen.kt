@@ -83,13 +83,22 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.ChipBlue
+import com.kelompok4.oralhealthplus.ui.theme.GreenSoft
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.StarAmber
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
 
-private val ClinicPrimaryBlue = Color(0xFF4A628A)
-private val ClinicBackgroundLight = Color(0xFFF8FAFC)
-private val ClinicBorderHairline = Color(0xFFE2E8F0)
-private val ClinicTextPrimary = Color(0xFF0F172A)
-private val ClinicTextMuted = Color(0xFF475569)
-private val ClinicStarAmber = Color(0xFFD97706)
+private val ClinicPrimaryBlue = BluePrimary
+private val ClinicBackgroundLight = White
+private val ClinicBorderHairline = SurfaceBlue
+private val ClinicTextPrimary = BluePrimary
+private val ClinicTextMuted = BluePrimary
+private val ClinicStarAmber = StarAmber
 
 enum class ClinicSection {
     CLINICS,
@@ -491,14 +500,14 @@ private fun DentalClinicCard(
             !clinic.openingHours.equals("Jadwal tidak tercantum di peta", ignoreCase = true)
 
     val statusBg = when {
-        !hasSchedule -> Color(0xFFF1F5F9)
-        clinic.isOpen -> Color(0xFFE8F5E9)
-        else -> Color(0xFFFFEBEE)
+        !hasSchedule -> ChipBlue
+        clinic.isOpen -> GreenSoft
+        else -> RedSoft
     }
     val statusFg = when {
-        !hasSchedule -> Color(0xFF475569)
-        clinic.isOpen -> Color(0xFF1E6B34)
-        else -> Color(0xFF9B1C1C)
+        !hasSchedule -> BluePrimary
+        clinic.isOpen -> GreenSuccess
+        else -> RedError
     }
     val statusText = when {
         !hasSchedule -> "Jadwal Tidak Tercantum"
@@ -775,7 +784,7 @@ private fun ClinicErrorBanner(message: String, onDismiss: () -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))
+        colors = CardDefaults.cardColors(containerColor = RedSoft)
     ) {
         Row(
             modifier = Modifier
@@ -786,13 +795,13 @@ private fun ClinicErrorBanner(message: String, onDismiss: () -> Unit) {
             Icon(
                 Icons.Filled.Warning,
                 contentDescription = null,
-                tint = Color(0xFF9B1C1C),
+                tint = RedError,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = message,
-                color = Color(0xFF9B1C1C),
+                color = RedError,
                 fontSize = 12.sp,
                 modifier = Modifier.weight(1f)
             )
@@ -800,7 +809,7 @@ private fun ClinicErrorBanner(message: String, onDismiss: () -> Unit) {
                 Icon(
                     Icons.Filled.Close,
                     contentDescription = "Tutup galat",
-                    tint = Color(0xFF9B1C1C),
+                    tint = RedError,
                     modifier = Modifier.size(16.dp)
                 )
             }

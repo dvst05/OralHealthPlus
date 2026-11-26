@@ -55,12 +55,17 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.RedSoft
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.theme.White
 
-private val PrimaryBlue = Color(0xFF4A628A)
-private val BackgroundLight = Color(0xFFF8FAFC)
-private val BorderHairline = Color(0xFFE2E8F0)
-private val TextPrimary = Color(0xFF0F172A)
-private val TextMuted = Color(0xFF475569)
+private val PrimaryBlue = BluePrimary
+private val BackgroundLight = White
+private val BorderHairline = SurfaceBlue
+private val TextPrimary = BluePrimary
+private val TextMuted = BluePrimary
 
 @Composable
 fun LoginScreen(
@@ -164,12 +169,12 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                        colors = CardDefaults.cardColors(containerColor = RedSoft),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text(
                             text = uiState.errorMessage,
-                            color = Color(0xFF9B1C1C),
+                            color = RedError,
                             fontSize = 13.sp,
                             modifier = Modifier.padding(12.dp)
                         )
@@ -219,7 +224,7 @@ fun LoginScreen(
                 OutlinedButton(
                     onClick = onGoogleSignInClick,
                     enabled = !uiState.isLoading,
-                    border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                    border = BorderStroke(1.dp, SurfaceBlue),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()

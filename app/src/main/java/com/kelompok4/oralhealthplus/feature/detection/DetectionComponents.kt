@@ -33,6 +33,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kelompok4.oralhealthplus.ui.theme.BlueLight
+import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
+import com.kelompok4.oralhealthplus.ui.theme.ChipBlue
+import com.kelompok4.oralhealthplus.ui.theme.GreenSuccess
+import com.kelompok4.oralhealthplus.ui.theme.GreyDisabled
+import com.kelompok4.oralhealthplus.ui.theme.GreyDisabledText
+import com.kelompok4.oralhealthplus.ui.theme.RedError
+import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 
 /*
  * Token warna dari desain Figma. Setelah tema Compose Anggota 4 siap, ganti
@@ -40,17 +48,17 @@ import androidx.compose.ui.unit.sp
  * Dependensi: androidx.compose.material:material-icons-extended
  */
 object OralColors {
-    val Primary = Color(0xFF4A628A)
-    val PrimaryEnd = Color(0xFF4B79A3)      // ujung gradien, digelapkan agar teks putih terbaca (>= 4.5:1)
-    val SoftBg = Color(0xFFEEF3FA)
-    val ChipBg = Color(0xFFE8F0FA)
-    val IconCircle = Color(0xFFBFE0FA)
-    val Line = Color(0xFF7BA7CC)
-    val DashBorder = Color(0xFF8FA3BF)
-    val Success = Color(0xFF1E7F38)
-    val DisabledBg = Color(0xFFE5E5E5)
-    val DisabledText = Color(0xFF9A9A9A)
-    val ErrorText = Color(0xFFB3261E)
+    val Primary = BluePrimary
+    val PrimaryEnd = BlueLight      // ujung gradien, digelapkan agar teks putih terbaca (>= 4.5:1)
+    val SoftBg = SurfaceBlue
+    val ChipBg = ChipBlue
+    val IconCircle = SurfaceBlue
+    val Line = BlueLight
+    val DashBorder = BlueLight
+    val Success = GreenSuccess
+    val DisabledBg = GreyDisabled
+    val DisabledText = GreyDisabledText
+    val ErrorText = RedError
 }
 
 /** Judul di tengah + garis biru di bawahnya. `onBack` null = tanpa tombol kembali (layar Result). */
