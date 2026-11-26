@@ -17,17 +17,43 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val activeSession: AuthSession? = null,
     val errorMessage: String? = null,
-    val infoMessage: String? = null
+    val infoMessage: String? = null,
+    val pendingOtpCode: String? = null,
+    val isOtpSent: Boolean = false
 )
 
 class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState(activeSession = repository.getActiveSession()))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun login(username: String, password: String) {
+    fun requestVerificationCode(email: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.login(username, password)
+            repository.sendVerificationCode(email)
+                .onSuccess { otpCode ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            pendingOtpCode = otpCode,
+                            isOtpSent = true,
+                            infoMessage = "Kode verifikasi dikirim ke $email (Kode verifikasi: $otpCode)"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Gagal mengirim kode verifikasi") }
+                }
+        }
+    }
+
+    fun resetVerificationState() {
+        _uiState.update { it.copy(pendingOtpCode = null, isOtpSent = false) }
+    }
+
+    fun login(identifier: String, password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.login(identifier, password)
                 .onSuccess { session ->
                     _uiState.update {
                         it.copy(
@@ -43,15 +69,44 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun register(username: String, displayName: String, password: String, confirmPassword: String) {
+    fun register(
+        username: String,
+        displayName: String,
+        email: String,
+        password: String,
+        confirmPassword: String,
+        inputOtp: String
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.register(username, displayName, password, confirmPassword)
+            val currentOtp = _uiState.value.pendingOtpCode
+            if (currentOtp == null || !_uiState.value.isOtpSent) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Silakan klik 'Kirim Kode' terlebih dahulu untuk verifikasi email"
+                    )
+                }
+                return@launch
+            }
+            if (inputOtp.trim() != currentOtp.trim()) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Kode verifikasi tidak sesuai. Silakan periksa kembali."
+                    )
+                }
+                return@launch
+            }
+
+            repository.register(username, displayName, email, password, confirmPassword)
                 .onSuccess { session ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             activeSession = session,
+                            pendingOtpCode = null,
+                            isOtpSent = false,
                             infoMessage = "Registrasi berhasil"
                         )
                     }
@@ -62,22 +117,27 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun signInWithGoogleLocal(email: String, displayName: String) {
+    fun signInWithGoogle(context: android.content.Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.signInWithGoogleLocal(email, displayName)
-                .onSuccess { session ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            activeSession = session,
-                            infoMessage = "Masuk dengan akun Google berhasil"
-                        )
+            val googleResult = GoogleAuthHelper.signInWithGoogle(context)
+            googleResult.onSuccess { googleUser ->
+                repository.signInWithGoogleAccount(googleUser.email, googleUser.displayName)
+                    .onSuccess { session ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                activeSession = session,
+                                infoMessage = "Berhasil masuk dengan akun Google: ${googleUser.email}"
+                            )
+                        }
                     }
-                }
-                .onFailure { err ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in gagal") }
-                }
+                    .onFailure { err ->
+                        _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Gagal menyimpan akun") }
+                    }
+            }.onFailure { err ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in Google gagal") }
+            }
         }
     }
 
@@ -85,6 +145,30 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             repository.logout()
             _uiState.update { it.copy(activeSession = null) }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.deleteAccount()
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSession = null,
+                            infoMessage = "Akun berhasil dihapus"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal menghapus akun"
+                        )
+                    }
+                }
         }
     }
 

@@ -63,4 +63,15 @@ class SessionManager(context: Context) {
             apply()
         }
     }
+
+    fun clearSecurityGateState(username: String) {
+        val userPrefix = "sec_${username.lowercase()}_"
+        with(sharedPreferences.edit()) {
+            remove("${userPrefix}last_ts")
+            remove("${userPrefix}violation_count")
+            remove("${userPrefix}suspension_level")
+            remove("${userPrefix}suspension_until")
+            apply()
+        }
+    }
 }

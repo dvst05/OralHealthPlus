@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -68,10 +69,12 @@ fun AccountProfileScreen(
     onOpenChatbot: () -> Unit,
     onOpenHistory: () -> Unit,
     onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit,
     onClearMessages: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -177,7 +180,7 @@ fun AccountProfileScreen(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (session.authProvider == "GOOGLE_LOCAL") "Akun Google" else "Akun OralHealth+",
+                            text = if (session.authProvider.startsWith("GOOGLE")) "Akun Google" else "Akun OralHealth+",
                             color = AccPrimaryBlue,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
@@ -251,6 +254,27 @@ fun AccountProfileScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Keluar dari Akun", color = AccDangerRed, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                     }
+
+                    OutlinedButton(
+                        onClick = { showDeleteAccountDialog = true },
+                        border = BorderStroke(1.dp, AccDangerRed.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = AccDangerRed.copy(alpha = 0.04f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DeleteForever,
+                            contentDescription = null,
+                            tint = AccDangerRed,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Hapus Akun Permanen", color = AccDangerRed, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -274,6 +298,39 @@ fun AccountProfileScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
+                    Text("Batal", color = AccTextMuted)
+                }
+            }
+        )
+    }
+
+    if (showDeleteAccountDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAccountDialog = false },
+            title = { Text("Hapus Akun Permanen?", fontWeight = FontWeight.SemiBold, color = AccDangerRed) },
+            text = {
+                Text(
+                    text = if (session.authProvider.startsWith("GOOGLE")) {
+                        "Data profil akun Google (${session.displayName}) pada aplikasi ini akan dihapus permanen dari perangkat, termasuk preferensi sesi lokal. Anda dapat login kembali sewaktu-waktu."
+                    } else {
+                        "Akun @${session.username} akan dihapus secara permanen dari database lokal aplikasi. Tindakan ini tidak dapat dibatalkan."
+                    },
+                    color = AccTextPrimary
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteAccountDialog = false
+                        onDeleteAccount()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccDangerRed)
+                ) {
+                    Text("Hapus Akun")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAccountDialog = false }) {
                     Text("Batal", color = AccTextMuted)
                 }
             }

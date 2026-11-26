@@ -16,9 +16,15 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertUser(user: UserEntity): Long
 
+    @Query("SELECT * FROM users WHERE LOWER(username) = LOWER(:identifier) OR (email != '' AND LOWER(email) = LOWER(:identifier)) LIMIT 1")
+    suspend fun getUserByIdentifier(identifier: String): UserEntity?
+
     @Query("SELECT * FROM users WHERE LOWER(username) = LOWER(:username) LIMIT 1")
     suspend fun getUserByUsername(username: String): UserEntity?
 
     @Query("SELECT * FROM users ORDER BY createdAt DESC LIMIT 1")
     suspend fun getLatestUser(): UserEntity?
+
+    @Query("DELETE FROM users WHERE LOWER(username) = LOWER(:username)")
+    suspend fun deleteUserByUsername(username: String): Int
 }
