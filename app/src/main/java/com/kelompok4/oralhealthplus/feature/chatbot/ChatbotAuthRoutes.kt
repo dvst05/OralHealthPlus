@@ -45,9 +45,11 @@ fun AccountRoute(
     } else if (showRegister) {
         RegisterScreen(
             uiState = uiState,
+            onRequestVerificationCode = vm::requestVerificationCode,
             onRegister = vm::register,
             onNavigateToLogin = {
                 vm.clearMessages()
+                vm.resetVerificationState()
                 showRegister = false
             },
             onClearMessages = vm::clearMessages
@@ -103,6 +105,7 @@ fun RegisterRoute(
     }
     RegisterScreen(
         uiState = uiState,
+        onRequestVerificationCode = vm::requestVerificationCode,
         onRegister = vm::register,
         onNavigateToLogin = onNavigateToLogin,
         onClearMessages = vm::clearMessages

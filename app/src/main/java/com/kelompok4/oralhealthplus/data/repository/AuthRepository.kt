@@ -23,16 +23,30 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
         )
     }
 
+    suspend fun sendVerificationCode(emailRaw: String): Result<String> = withContext(Dispatchers.IO) {
+        val email = emailRaw.trim().lowercase()
+        if (!email.contains("@") || !email.contains(".") || email.length < 5) {
+            return@withContext Result.failure(IllegalArgumentException("Format alamat email tidak valid"))
+        }
+        val randomOtp = (100000..999999).random().toString()
+        Result.success(randomOtp)
+    }
+
     suspend fun register(
         usernameRaw: String,
         displayNameRaw: String,
+        emailRaw: String,
         password: String,
         confirmPassword: String
     ): Result<AuthSession> = withContext(Dispatchers.IO) {
         val username = usernameRaw.trim().lowercase()
         val displayName = displayNameRaw.trim().ifBlank { username }
+        val email = emailRaw.trim().lowercase()
         if (username.length !in 3..32) {
             return@withContext Result.failure(IllegalArgumentException("Username harus 3–32 karakter"))
+        }
+        if (email.isNotBlank() && (!email.contains("@") || !email.contains("."))) {
+            return@withContext Result.failure(IllegalArgumentException("Format alamat email tidak valid"))
         }
         if (password.length < 6) {
             return@withContext Result.failure(IllegalArgumentException("Password minimal 6 karakter"))
@@ -47,7 +61,7 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
         val userEntity = UserEntity(
             username = username,
             displayName = displayName,
-            email = "",
+            email = email,
             passwordHash = passwordHash,
             authProvider = "LOCAL"
         )
