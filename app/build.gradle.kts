@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Kunci API dibaca dari local.properties (file ini TIDAK ikut di-commit)
 val localProps = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) {
@@ -23,11 +24,13 @@ val newsApiKey: String = localProps.getProperty("NEWS_API_KEY", "")
 
 android {
     namespace = "com.kelompok4.oralhealthplus"
-    compileSdk = 37
+    compileSdk {
+        version = release(37)
+    }
 
     defaultConfig {
         applicationId = "com.kelompok4.oralhealthplus"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -67,7 +70,7 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation("androidx.compose.material:material-icons-extended")
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -79,6 +82,8 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.lottie.compose)
     implementation("org.tensorflow:tensorflow-lite:2.16.1")
+    implementation(libs.play.services.location)
+    implementation(libs.osmdroid.android)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

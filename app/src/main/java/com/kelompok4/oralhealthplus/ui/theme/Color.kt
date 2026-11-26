@@ -14,7 +14,7 @@ val OralTextMuted = Color(0xFF475569)
 val OralBorderHairline = Color(0xFFE2E8F0)
 val OralErrorRed = Color(0xFF9B1C1C)
 
-// Semua warna diambil dari Figma HIFI (file "PAPB") untuk modul Home, Onboarding, & Edukasi
+// Semua warna diambil dari Figma HIFI (file "PAPB") untuk modul Home, Onboarding, Edukasi, & Klinik
 val BluePrimary = Color(0xFF4A628A)      // judul, teks utama, tombol "Try Again", tab aktif
 val BlueLight = Color(0xFF7AB2D3)        // garis di bawah judul layar, ujung gradien tombol
 val BlueDark = Color(0xFF3A5075)         // teks di dalam chip (Article, Certainty 87%)
