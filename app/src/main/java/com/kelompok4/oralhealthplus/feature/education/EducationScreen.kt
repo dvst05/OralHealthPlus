@@ -1,5 +1,7 @@
 package com.kelompok4.oralhealthplus.feature.education
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,9 +16,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
@@ -30,18 +35,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.kelompok4.oralhealthplus.R
 import com.kelompok4.oralhealthplus.ui.components.GradientButton
 import com.kelompok4.oralhealthplus.ui.components.LabelChip
 import com.kelompok4.oralhealthplus.ui.components.ScreenHeader
 import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
+import com.kelompok4.oralhealthplus.ui.theme.PrimaryGradient
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -98,9 +113,24 @@ fun EducationScreen(
             }
 
             is EducationUiState.Gagal -> KondisiTengah {
-                Text("Gagal memuat konten", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-                Text(state.pesan, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-                GradientButton("Coba Lagi", onClick = onCobaLagi, modifier = Modifier.padding(top = 8.dp))
+                // Figma "State Gagal Memuat": ilustrasi dokter (tutorial1) 276×251
+                Image(
+                    painterResource(R.drawable.onboarding_1), contentDescription = null,
+                    contentScale = ContentScale.Fit, modifier = Modifier.size(width = 276.dp, height = 251.dp),
+                )
+                Text(
+                    "Gagal memuat konten", style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center,
+                )
+                Text(
+                    state.pesan, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                    color = MaterialTheme.colorScheme.primary, textAlign = TextAlign.Center,
+                )
+                TombolCobaLagi(onCobaLagi)
+                Text(
+                    "Kembali", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onBack).padding(8.dp),
+                )
             }
 
             is EducationUiState.Sukses -> {
@@ -143,6 +173,11 @@ private fun KartuBelumAdaHasil(onCekMulut: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        // Figma "State Kosong": ilustrasi dokter (tutorial3) 148×134
+        Image(
+            painterResource(R.drawable.onboarding_3), contentDescription = null,
+            contentScale = ContentScale.Fit, modifier = Modifier.size(width = 148.dp, height = 134.dp),
+        )
         Text("Belum ada hasil pemeriksaan", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         Text(
             "Lakukan Cek Mulut agar rekomendasi sesuai kondisimu. Sementara itu, berikut konten umum kesehatan mulut.",
@@ -183,10 +218,50 @@ private fun KartuKonten(konten: EducationContent, palingRelevan: Boolean, onClic
     }
 }
 
+/** Tombol "Coba Lagi" dengan ikon refresh, sesuai Figma (gradien, lebar maks 309, radius 30). */
+@Composable
+private fun TombolCobaLagi(onClick: () -> Unit) {
+    Row(
+        Modifier
+            .padding(top = 8.dp)
+            .widthIn(max = 309.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(30.dp))
+            .background(PrimaryGradient)
+            .clickable(onClick = onClick)
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IkonRefresh(Modifier.size(20.dp))
+        Text("Coba Lagi", style = MaterialTheme.typography.labelLarge, color = Color.White)
+    }
+}
+
+/** Ikon refresh digambar dengan Canvas (lingkaran terbuka + mata panah), tanpa library ikon tambahan. */
+@Composable
+private fun IkonRefresh(modifier: Modifier) {
+    Canvas(modifier) {
+        val tebal = size.minDimension * 0.1f
+        val inset = tebal * 1.5f
+        drawArc(
+            color = Color.White, startAngle = -60f, sweepAngle = 300f, useCenter = false,
+            topLeft = Offset(inset, inset), size = Size(size.width - 2 * inset, size.height - 2 * inset),
+            style = Stroke(width = tebal, cap = StrokeCap.Round),
+        )
+        // mata panah di ujung awal busur (kanan atas)
+        val r = (size.minDimension - 2 * inset) / 2
+        val ujung = Offset(center.x + r * 0.5f, center.y - r * 0.866f)
+        val panjang = size.minDimension * 0.3f
+        drawLine(Color.White, ujung, ujung + Offset(panjang, 0f), tebal, StrokeCap.Round)
+        drawLine(Color.White, ujung, ujung + Offset(0f, -panjang), tebal, StrokeCap.Round)
+    }
+}
+
 @Composable
 private fun KondisiTengah(isi: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxSize().padding(32.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
     ) { isi() }
