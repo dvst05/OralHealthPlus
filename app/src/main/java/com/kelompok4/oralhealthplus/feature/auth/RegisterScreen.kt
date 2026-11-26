@@ -3,7 +3,9 @@ package com.kelompok4.oralhealthplus.feature.auth
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,9 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -27,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -57,13 +64,16 @@ private val RegTextMuted = Color(0xFF475569)
 @Composable
 fun RegisterScreen(
     uiState: AuthUiState,
-    onRegister: (username: String, displayName: String, password: String, confirmPassword: String) -> Unit,
+    onRequestVerificationCode: (email: String) -> Unit,
+    onRegister: (username: String, displayName: String, email: String, password: String, confirmPassword: String, inputOtp: String) -> Unit,
     onNavigateToLogin: () -> Unit,
     onClearMessages: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var displayName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var verificationCode by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
@@ -112,7 +122,7 @@ fun RegisterScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Riwayat pemeriksaan gigi dan percakapan dokter gigi virtual tersimpan aman di perangkat Anda.",
+                        text = "Daftarkan akun email/Gmail Anda untuk sinkronisasi riwayat pemeriksaan gigi.",
                         color = RegTextMuted,
                         fontSize = 13.sp
                     )
@@ -141,6 +151,59 @@ fun RegisterScreen(
                         },
                         label = { Text("Username (3–32 karakter)") },
                         leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = RegPrimaryBlue) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            if (uiState.errorMessage != null) onClearMessages()
+                        },
+                        label = { Text("Alamat Email / Gmail") },
+                        placeholder = { Text("contoh@gmail.com") },
+                        leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null, tint = RegPrimaryBlue) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        OutlinedButton(
+                            onClick = { onRequestVerificationCode(email) },
+                            enabled = email.isNotBlank() && !uiState.isLoading,
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, RegPrimaryBlue)
+                        ) {
+                            Text(
+                                text = if (uiState.isOtpSent) "Kirim Ulang Kode" else "Kirim Kode Verifikasi",
+                                color = RegPrimaryBlue,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = verificationCode,
+                        onValueChange = {
+                            if (it.length <= 6) verificationCode = it
+                            if (uiState.errorMessage != null) onClearMessages()
+                        },
+                        label = { Text("Kode Verifikasi (6 Digit)") },
+                        placeholder = { Text("123456") },
+                        leadingIcon = { Icon(Icons.Filled.Key, contentDescription = null, tint = RegPrimaryBlue) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -207,10 +270,28 @@ fun RegisterScreen(
                         }
                     }
 
+                    if (uiState.infoMessage != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Text(
+                                text = uiState.infoMessage,
+                                color = Color(0xFF2E7D32),
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(20.dp))
 
                     Button(
-                        onClick = { onRegister(username, displayName, password, confirmPassword) },
+                        onClick = {
+                            onRegister(username, displayName, email, password, confirmPassword, verificationCode)
+                        },
                         enabled = !uiState.isLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = RegPrimaryBlue),
                         shape = RoundedCornerShape(12.dp),
@@ -225,7 +306,7 @@ fun RegisterScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         } else {
-                            Text("Buat Akun", fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                            Text("Daftar & Verifikasi", fontSize = 15.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }

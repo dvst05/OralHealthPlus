@@ -21,4 +21,7 @@ interface UserDao {
 
     @Query("SELECT * FROM users ORDER BY createdAt DESC LIMIT 1")
     suspend fun getLatestUser(): UserEntity?
+
+    @Query("DELETE FROM users WHERE LOWER(username) = LOWER(:username)")
+    suspend fun deleteUserByUsername(username: String): Int
 }

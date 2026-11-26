@@ -62,22 +62,27 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun signInWithGoogleLocal(email: String, displayName: String) {
+    fun signInWithGoogle(context: android.content.Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.signInWithGoogleLocal(email, displayName)
-                .onSuccess { session ->
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            activeSession = session,
-                            infoMessage = "Masuk dengan akun Google berhasil"
-                        )
+            val googleResult = GoogleAuthHelper.signInWithGoogle(context)
+            googleResult.onSuccess { googleUser ->
+                repository.signInWithGoogleAccount(googleUser.email, googleUser.displayName)
+                    .onSuccess { session ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                activeSession = session,
+                                infoMessage = "Berhasil masuk dengan akun Google: ${googleUser.email}"
+                            )
+                        }
                     }
-                }
-                .onFailure { err ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in gagal") }
-                }
+                    .onFailure { err ->
+                        _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Gagal menyimpan akun") }
+                    }
+            }.onFailure { err ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in Google gagal") }
+            }
         }
     }
 
@@ -85,6 +90,30 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             repository.logout()
             _uiState.update { it.copy(activeSession = null) }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.deleteAccount()
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSession = null,
+                            infoMessage = "Akun berhasil dihapus"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal menghapus akun"
+                        )
+                    }
+                }
         }
     }
 

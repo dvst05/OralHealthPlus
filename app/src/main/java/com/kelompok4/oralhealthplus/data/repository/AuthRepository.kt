@@ -69,7 +69,7 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
         Result.success(AuthSession(user.username, user.displayName, user.authProvider))
     }
 
-    suspend fun signInWithGoogleLocal(emailRaw: String, displayNameRaw: String): Result<AuthSession> = withContext(Dispatchers.IO) {
+    suspend fun signInWithGoogleAccount(emailRaw: String, displayNameRaw: String): Result<AuthSession> = withContext(Dispatchers.IO) {
         val email = emailRaw.trim().lowercase()
         if (!email.contains("@") || email.length < 5) {
             return@withContext Result.failure(IllegalArgumentException("Format email Google tidak valid"))
@@ -82,15 +82,28 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
             displayName = displayName,
             email = email,
             passwordHash = passwordHash,
-            authProvider = "GOOGLE_LOCAL"
+            authProvider = "GOOGLE"
         )
         userDao.upsertUser(userEntity)
         saveSession(userEntity)
-        Result.success(AuthSession(username, displayName, "GOOGLE_LOCAL"))
+        Result.success(AuthSession(username, displayName, "GOOGLE"))
     }
 
     fun logout() {
         sessionManager.clearSession()
+    }
+
+    suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
+        val currentUsername = sessionManager.getLoggedInUsername()
+            ?: return@withContext Result.failure(IllegalStateException("Tidak ada sesi pengguna aktif"))
+        try {
+            userDao.deleteUserByUsername(currentUsername)
+            sessionManager.clearSecurityGateState(currentUsername)
+            sessionManager.clearSession()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private fun saveSession(userEntity: UserEntity) {

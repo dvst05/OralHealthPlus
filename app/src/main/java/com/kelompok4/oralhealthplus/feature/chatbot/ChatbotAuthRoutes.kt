@@ -36,6 +36,10 @@ fun AccountRoute(
                 showRegister = false
                 vm.logout()
             },
+            onDeleteAccount = {
+                showRegister = false
+                vm.deleteAccount()
+            },
             onClearMessages = vm::clearMessages
         )
     } else if (showRegister) {
@@ -49,10 +53,11 @@ fun AccountRoute(
             onClearMessages = vm::clearMessages
         )
     } else {
+        val context = androidx.compose.ui.platform.LocalContext.current
         LoginScreen(
             uiState = uiState,
             onLogin = vm::login,
-            onGoogleLocalSignIn = vm::signInWithGoogleLocal,
+            onGoogleSignInClick = { vm.signInWithGoogle(context) },
             onNavigateToRegister = {
                 vm.clearMessages()
                 showRegister = true
@@ -69,6 +74,7 @@ fun LoginRoute(
     onNavigateToRegister: () -> Unit
 ) {
     val uiState by vm.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(uiState.activeSession) {
         if (uiState.activeSession != null) {
             onAuthenticated()
@@ -77,7 +83,7 @@ fun LoginRoute(
     LoginScreen(
         uiState = uiState,
         onLogin = vm::login,
-        onGoogleLocalSignIn = vm::signInWithGoogleLocal,
+        onGoogleSignInClick = { vm.signInWithGoogle(context) },
         onNavigateToRegister = onNavigateToRegister,
         onClearMessages = vm::clearMessages
     )
