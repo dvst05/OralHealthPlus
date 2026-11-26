@@ -1,5 +1,8 @@
 package com.kelompok4.oralhealthplus.feature.detection
 
+import android.Manifest
+import android.content.ActivityNotFoundException
+import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -10,18 +13,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
+import java.io.File
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * SATU rute NavHost untuk seluruh fungsi 1 (Oral Check -> Analyze -> Result / Rejected).
  * Anggota 3 cukup memasang: composable("deteksi") { DetectionRoute(vm, ...) }.
  *
- * Galeri memakai Photo Picker sistem (tanpa izin storage). Kamera memakai TakePicturePreview
- * (tanpa FileProvider, hasilnya Bitmap kecil; cukup untuk model 224x224).
- * JANGAN deklarasikan <uses-permission CAMERA> di manifest: kontrak ini hanya jalan tanpa
- * izin itu, kalau dideklarasikan aplikasi harus meminta izin runtime lebih dulu.
+ * Galeri memakai Photo Picker sistem (tanpa izin storage). Kamera memakai TakePicture +
+ * FileProvider supaya fotonya beresolusi penuh (TakePicturePreview hanya memberi thumbnail).
+ * Izin CAMERA tidak dibutuhkan; tetapi jika modul lain mendeklarasikannya di manifest,
+ * Android mewajibkan izin runtime sebelum membuka kamera, dan rute ini sudah memintanya.
  */
 @Composable
 fun DetectionRoute(
@@ -44,11 +50,56 @@ fun DetectionRoute(
         if (uri != null) scope.launch {
             runCatching { muatBitmap(context, uri) }
                 .onSuccess { pesanGalat = null; vm.pilihFoto(it) }
-                .onFailure { pesanGalat = "Couldn't open that photo. Try another one." }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    pesanGalat = "Couldn't open that photo. Try another one."
+                }
         }
     }
-    val kamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bmp ->
-        if (bmp != null) { pesanGalat = null; vm.pilihFoto(bmp) }
+    // rememberSaveable: aplikasi bisa dimatikan sistem saat kamera terbuka
+    var pathFotoKamera by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val kamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { berhasil ->
+        val file = pathFotoKamera?.let(::File)
+        pathFotoKamera = null
+        if (file == null) return@rememberLauncherForActivityResult
+        if (!berhasil) {
+            file.delete()
+            return@rememberLauncherForActivityResult
+        }
+        scope.launch {
+            try {
+                vm.pilihFoto(muatBitmap(context, Uri.fromFile(file)))
+                pesanGalat = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                pesanGalat = "Couldn't read the camera photo. Please try again."
+            } finally {
+                file.delete()   // foto mulut tidak disimpan di perangkat setelah dibaca
+            }
+        }
+    }
+
+    fun bukaKamera() {
+        try {
+            val file = buatFileFotoKamera(context)
+            pathFotoKamera = file.absolutePath
+            kamera.launch(uriFotoKamera(context, file))
+        } catch (e: ActivityNotFoundException) {
+            pesanGalat = "No camera app found. Please use Gallery instead."
+        } catch (e: Exception) {
+            pesanGalat = "Couldn't open the camera. Please use Gallery instead."
+        }
+    }
+
+    val izinKamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { diberi ->
+        if (diberi) bukaKamera()
+        else pesanGalat = "Camera permission is needed to take a photo. You can use Gallery instead."
+    }
+
+    fun ambilFoto() {
+        if (perluIzinKamera(context)) izinKamera.launch(Manifest.permission.CAMERA) else bukaKamera()
     }
 
     // Back dari Result/Rejected/Error = ulang dari awal (bukan keluar fitur)
@@ -60,7 +111,7 @@ fun DetectionRoute(
     when (val s = state) {
         DetectionUiState.Idle -> OralCheckScreen(
             foto = foto, pesanGalat = pesanGalat, onBack = onBack,
-            onTakePhoto = { kamera.launch(null) },
+            onTakePhoto = { ambilFoto() },
             onGallery = { galeri.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
             onChangePhoto = vm::ulangiFoto,
             onAnalyze = vm::analyze
@@ -75,7 +126,8 @@ fun DetectionRoute(
             onSeeAll = { onLihatEdukasi(s.hasil.kelas) },
             onItemClick = onEduItemClick,
             onTanyaChatbot = onTanyaChatbot,
-            onCariKlinik = onCariKlinik
+            onCariKlinik = onCariKlinik,
+            riwayatTersimpan = s.riwayatTersimpan
         )
     }
 }

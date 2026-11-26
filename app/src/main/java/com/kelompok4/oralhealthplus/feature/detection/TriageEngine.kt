@@ -32,12 +32,19 @@ object TriageEngine {
 
     fun normalisasi(label: String): String = label.lowercase().replace(Regex("[^a-z]"), "")
 
+    /** true jika kelas punya baris sendiri di decision table (bukan memakai nilai default). */
+    fun dikenal(kelas: String): Boolean = cariBaris(kelas) != null
+
+    private fun cariBaris(kelas: String): Pair<Urgensi, Urgensi>? {
+        val kunci = normalisasi(kelas)
+        return tabel.entries.firstOrNull { kunci.contains(it.key) }?.value
+    }
+
     fun evaluate(kelas: String, confidence: Float): DetectionResult {
         if (confidence.isNaN() || confidence < AMBANG_YAKIN) {
             return DetectionResult(kelas, confidence, urgensi = null, ditolak = true)
         }
-        val kunci = normalisasi(kelas)
-        val baris = tabel.entries.firstOrNull { kunci.contains(it.key) }?.value
+        val baris = cariBaris(kelas)
         val urgensi = when {
             baris == null -> Urgensi.KONTROL_RUTIN
             confidence >= AMBANG_TINGGI -> baris.second
