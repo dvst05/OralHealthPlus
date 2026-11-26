@@ -70,14 +70,14 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
         Result.success(AuthSession(username, displayName, "LOCAL"))
     }
 
-    suspend fun login(usernameRaw: String, password: String): Result<AuthSession> = withContext(Dispatchers.IO) {
-        val username = usernameRaw.trim().lowercase()
-        if (username.isBlank() || password.isBlank()) {
-            return@withContext Result.failure(IllegalArgumentException("Username dan password wajib diisi"))
+    suspend fun login(identifierRaw: String, password: String): Result<AuthSession> = withContext(Dispatchers.IO) {
+        val identifier = identifierRaw.trim().lowercase()
+        if (identifier.isBlank() || password.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("Username/email dan password wajib diisi"))
         }
-        val user = userDao.getUserByUsername(username)
+        val user = userDao.getUserByIdentifier(identifier)
         if (user == null || !PasswordHasher.verifyPassword(password, user.passwordHash)) {
-            return@withContext Result.failure(IllegalArgumentException("Username atau password salah"))
+            return@withContext Result.failure(IllegalArgumentException("Username/email atau password salah"))
         }
         saveSession(user)
         Result.success(AuthSession(user.username, user.displayName, user.authProvider))

@@ -130,7 +130,8 @@ fun LoginScreen(
                         username = it
                         if (uiState.errorMessage != null) onClearMessages()
                     },
-                    label = { Text("Username") },
+                    label = { Text("Username atau Email") },
+                    placeholder = { Text("username atau nama@gmail.com") },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = PrimaryBlue) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()

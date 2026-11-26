@@ -50,10 +50,10 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         _uiState.update { it.copy(pendingOtpCode = null, isOtpSent = false) }
     }
 
-    fun login(username: String, password: String) {
+    fun login(identifier: String, password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.login(username, password)
+            repository.login(identifier, password)
                 .onSuccess { session ->
                     _uiState.update {
                         it.copy(
