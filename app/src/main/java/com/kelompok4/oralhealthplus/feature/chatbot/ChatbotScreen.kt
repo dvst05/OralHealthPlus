@@ -79,6 +79,7 @@ fun ChatbotScreen(
     onSendMessage: (String) -> Unit,
     onClearChat: () -> Unit,
     onClearError: () -> Unit,
+    onClearSecurityWarning: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -144,47 +145,65 @@ fun ChatbotScreen(
             ) {
                 Column(modifier = Modifier.navigationBarsPadding()) {
                     HorizontalDivider(color = ChatBorderHairline)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = inputText,
-                            onValueChange = { inputText = it.take(1000) },
-                            placeholder = { Text("Tanyakan keluhan atau perawatan gigi...", fontSize = 14.sp) },
-                            maxLines = 3,
-                            shape = RoundedCornerShape(14.dp),
-                            modifier = Modifier.weight(1f)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        IconButton(
-                            onClick = {
-                                val text = inputText.trim()
-                                if (text.isNotEmpty() && !uiState.isSending) {
-                                    onSendMessage(text)
-                                    inputText = ""
-                                }
-                            },
-                            enabled = inputText.isNotBlank() && !uiState.isSending,
+                    if (uiState.isSuspended) {
+                        Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    if (inputText.isNotBlank() && !uiState.isSending) {
-                                        ChatPrimaryBlue
-                                    } else {
-                                        ChatBorderHairline
-                                    }
-                                )
+                                .fillMaxWidth()
+                                .background(Color(0xFFFFF0F0))
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "Kirim pesan",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
+                            Text(
+                                text = uiState.suspensionMessage ?: "Akses Chatbot sedang ditangguhkan.",
+                                color = Color(0xFF9B1C1C),
+                                fontSize = 13.sp,
+                                lineHeight = 18.sp,
+                                fontWeight = FontWeight.Medium
                             )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = inputText,
+                                onValueChange = { inputText = it.take(1000) },
+                                placeholder = { Text("Tanyakan keluhan atau perawatan gigi...", fontSize = 14.sp) },
+                                maxLines = 3,
+                                shape = RoundedCornerShape(14.dp),
+                                enabled = !uiState.isSending,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = {
+                                    val text = inputText.trim()
+                                    if (text.isNotEmpty() && !uiState.isSending) {
+                                        onSendMessage(text)
+                                        inputText = ""
+                                    }
+                                },
+                                enabled = inputText.isNotBlank() && !uiState.isSending,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (inputText.isNotBlank() && !uiState.isSending) {
+                                            ChatPrimaryBlue
+                                        } else {
+                                            ChatBorderHairline
+                                        }
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Kirim pesan",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -212,6 +231,10 @@ fun ChatbotScreen(
                         )
                     }
                 }
+            }
+
+            if (uiState.securityWarning != null) {
+                ChatSecurityWarningBanner(message = uiState.securityWarning, onDismiss = onClearSecurityWarning)
             }
 
             if (uiState.errorMessage != null) {
@@ -330,6 +353,38 @@ private fun DetectionContextBanner(latestDetection: DetectionHistoryEntity?) {
                         fontSize = 12.sp
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChatSecurityWarningBanner(message: String, onDismiss: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        shape = RoundedCornerShape(10.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+        border = BorderStroke(1.dp, Color(0xFFFFE082))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Filled.Warning, contentDescription = null, tint = Color(0xFFB78103), modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = message,
+                color = Color(0xFF7A5400),
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Filled.Close, contentDescription = "Tutup peringatan", tint = Color(0xFF7A5400), modifier = Modifier.size(16.dp))
             }
         }
     }

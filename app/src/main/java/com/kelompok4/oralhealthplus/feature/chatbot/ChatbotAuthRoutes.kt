@@ -138,6 +138,7 @@ fun ChatbotRoute(
         onSendMessage = vm::sendMessage,
         onClearChat = vm::clearChatHistory,
         onClearError = vm::clearError,
+        onClearSecurityWarning = vm::clearSecurityWarning,
         onBack = onBack
     )
 }

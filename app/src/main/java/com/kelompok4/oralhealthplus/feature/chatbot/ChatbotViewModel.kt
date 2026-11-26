@@ -25,6 +25,9 @@ import kotlinx.coroutines.withContext
 data class ChatbotUiState(
     val isSending: Boolean = false,
     val errorMessage: String? = null,
+    val securityWarning: String? = null,
+    val isSuspended: Boolean = false,
+    val suspensionMessage: String? = null,
     val quickPrompts: List<String> = emptyList()
 )
 
@@ -46,6 +49,7 @@ class ChatbotViewModel(
     val uiState: StateFlow<ChatbotUiState> = _uiState.asStateFlow()
 
     init {
+        refreshSuspensionStatus()
         viewModelScope.launch {
             latestDetection.collect { detection ->
                 _uiState.update { it.copy(quickPrompts = ContextualPromptBuilder.defaultQuickPrompts(detection)) }
@@ -53,17 +57,96 @@ class ChatbotViewModel(
         }
     }
 
+    fun refreshSuspensionStatus() {
+        val user = currentUsername
+        val state = sessionManager.getSecurityGateState(user)
+        val now = System.currentTimeMillis()
+        if (state.suspensionUntil > now) {
+            val remaining = state.suspensionUntil - now
+            val isPermanent = state.suspensionUntil == Long.MAX_VALUE
+            val timeStr = ChatbotSecurityGate.formatRemainingTime(remaining, isPermanent)
+            val msg = if (isPermanent) {
+                "Akses Chatbot telah diblokir secara permanen pada perangkat ini karena pelanggaran berulang terhadap aturan penggunaan aplikasi."
+            } else {
+                "Akses Chatbot ditangguhkan sementara selama $timeStr karena pelanggaran aturan topik di luar kesehatan gigi & mulut."
+            }
+            _uiState.update {
+                it.copy(
+                    isSuspended = true,
+                    suspensionMessage = msg
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(
+                    isSuspended = false,
+                    suspensionMessage = null
+                )
+            }
+        }
+    }
+
     fun sendMessage(rawInput: String) {
         val trimmed = rawInput.trim().take(1000)
         if (trimmed.isEmpty() || _uiState.value.isSending) return
+
+        val user = currentUsername
+        val now = System.currentTimeMillis()
+        val currentState = sessionManager.getSecurityGateState(user)
+
+        // 1. Pre-Check Security Gate (Domain Relevance, Rate-Limit, Suspension)
+        when (val evalResult = ChatbotSecurityGate.evaluateMessage(trimmed, now, currentState)) {
+            is SecurityEvaluationResult.Blocked -> {
+                _uiState.update {
+                    it.copy(
+                        isSuspended = true,
+                        suspensionMessage = evalResult.message,
+                        securityWarning = null
+                    )
+                }
+                return
+            }
+            is SecurityEvaluationResult.SuspendedNow -> {
+                sessionManager.saveSecurityGateState(user, evalResult.updatedState)
+                _uiState.update {
+                    it.copy(
+                        isSuspended = true,
+                        suspensionMessage = evalResult.message,
+                        securityWarning = null
+                    )
+                }
+                return
+            }
+            is SecurityEvaluationResult.RejectedSpam -> {
+                _uiState.update {
+                    it.copy(securityWarning = evalResult.message)
+                }
+                return
+            }
+            is SecurityEvaluationResult.RejectedOutOfScope -> {
+                sessionManager.saveSecurityGateState(user, evalResult.updatedState)
+                _uiState.update {
+                    it.copy(securityWarning = evalResult.warningMessage)
+                }
+                return
+            }
+            is SecurityEvaluationResult.Allowed -> {
+                sessionManager.saveSecurityGateState(user, evalResult.updatedState)
+                _uiState.update {
+                    it.copy(securityWarning = null, isSuspended = false, suspensionMessage = null)
+                }
+            }
+        }
+
+        // 2. Cek ketersediaan API key
         val apiKey = BuildConfig.GEMINI_API_KEY.trim()
         if (apiKey.isBlank()) {
             _uiState.update { it.copy(errorMessage = "Layanan konsultasi AI belum tersedia saat ini. Silakan coba lagi nanti.") }
             return
         }
+
         viewModelScope.launch {
-            _uiState.update { it.copy(isSending = true, errorMessage = null) }
-            val user = currentUsername
+            _uiState.update { it.copy(isSending = true, errorMessage = null, securityWarning = null) }
             val latest = historyRepository.getLatestDetection()
             val recentMessages = withContext(Dispatchers.IO) { chatMessageDao.getMessagesForUser(user).takeLast(8) }
             withContext(Dispatchers.IO) {
@@ -98,6 +181,8 @@ class ChatbotViewModel(
     }
 
     fun clearError() { _uiState.update { it.copy(errorMessage = null) } }
+
+    fun clearSecurityWarning() { _uiState.update { it.copy(securityWarning = null) } }
 
     class Factory(
         private val historyRepository: HistoryRepository,

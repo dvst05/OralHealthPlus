@@ -40,4 +40,27 @@ class SessionManager(context: Context) {
             apply()
         }
     }
+
+    // --- Chatbot Security Gate & Suspension Persistence ---
+
+    fun getSecurityGateState(username: String): com.kelompok4.oralhealthplus.feature.chatbot.SecurityGateState {
+        val userPrefix = "sec_${username.lowercase()}_"
+        return com.kelompok4.oralhealthplus.feature.chatbot.SecurityGateState(
+            lastMessageTimestamp = sharedPreferences.getLong("${userPrefix}last_ts", 0L),
+            violationCount = sharedPreferences.getInt("${userPrefix}violation_count", 0),
+            suspensionLevel = sharedPreferences.getInt("${userPrefix}suspension_level", 0),
+            suspensionUntil = sharedPreferences.getLong("${userPrefix}suspension_until", 0L)
+        )
+    }
+
+    fun saveSecurityGateState(username: String, state: com.kelompok4.oralhealthplus.feature.chatbot.SecurityGateState) {
+        val userPrefix = "sec_${username.lowercase()}_"
+        with(sharedPreferences.edit()) {
+            putLong("${userPrefix}last_ts", state.lastMessageTimestamp)
+            putInt("${userPrefix}violation_count", state.violationCount)
+            putInt("${userPrefix}suspension_level", state.suspensionLevel)
+            putLong("${userPrefix}suspension_until", state.suspensionUntil)
+            apply()
+        }
+    }
 }
