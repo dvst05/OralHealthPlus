@@ -70,6 +70,7 @@ import com.kelompok4.oralhealthplus.ui.theme.RedError
 import com.kelompok4.oralhealthplus.ui.theme.RedSoft
 import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 private val HistPrimaryBlue = BluePrimary
 private val HistBackgroundLight = White
@@ -222,12 +223,11 @@ fun HistoryReportScreen(
                 }
             },
             confirmButton = {
-                Button(
+                GradientFilledButton(
                     onClick = {
                         onUpdateCatatan(targetItem.id, editedCatatan)
                         editingItem = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HistPrimaryBlue)
                 ) {
                     Text("Simpan")
                 }
@@ -376,9 +376,8 @@ private fun HistoryReportCard(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                Button(
+                GradientFilledButton(
                     onClick = onConsultClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = HistPrimaryBlue),
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                 ) {

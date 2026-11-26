@@ -60,6 +60,7 @@ import com.kelompok4.oralhealthplus.ui.theme.RedError
 import com.kelompok4.oralhealthplus.ui.theme.RedSoft
 import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 private val PrimaryBlue = BluePrimary
 private val BackgroundLight = White
@@ -183,10 +184,9 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Button(
+                GradientFilledButton(
                     onClick = { onLogin(username, password) },
                     enabled = !uiState.isLoading,
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()

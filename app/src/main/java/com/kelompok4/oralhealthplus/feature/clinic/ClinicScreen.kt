@@ -92,6 +92,7 @@ import com.kelompok4.oralhealthplus.ui.theme.RedSoft
 import com.kelompok4.oralhealthplus.ui.theme.StarAmber
 import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 private val ClinicPrimaryBlue = BluePrimary
 private val ClinicBackgroundLight = White
@@ -476,9 +477,8 @@ private fun GpsStatusBanner(
                 )
             }
             if (!hasPermission) {
-                Button(
+                GradientFilledButton(
                     onClick = onRequestPermission,
-                    colors = ButtonDefaults.buttonColors(containerColor = ClinicPrimaryBlue),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                 ) {
@@ -677,11 +677,10 @@ private fun DentalClinicCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
+                GradientFilledButton(
                     onClick = onOpenMaps,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ClinicPrimaryBlue)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Directions,
@@ -762,10 +761,9 @@ private fun EmptyClinicCard(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(14.dp))
-            Button(
+            GradientFilledButton(
                 onClick = onAction,
                 shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ClinicPrimaryBlue)
             ) {
                 Text(
                     text = if (hasPermission) "Cari Ulang" else "Izinkan Lokasi",

@@ -82,6 +82,7 @@ import com.kelompok4.oralhealthplus.ui.theme.RedLight
 import com.kelompok4.oralhealthplus.ui.theme.RedSoft
 import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 private val ChatPrimaryBlue = BluePrimary
 private val ChatBackgroundLight = White
@@ -398,9 +399,8 @@ private fun GuestChatLockoutBar(onOpenLogin: () -> Unit) {
             lineHeight = 17.sp
         )
         Spacer(modifier = Modifier.height(10.dp))
-        Button(
+        GradientFilledButton(
             onClick = onOpenLogin,
-            colors = ButtonDefaults.buttonColors(containerColor = ChatPrimaryBlue),
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {

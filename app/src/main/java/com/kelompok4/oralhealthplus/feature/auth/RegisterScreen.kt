@@ -60,6 +60,7 @@ import com.kelompok4.oralhealthplus.ui.theme.RedError
 import com.kelompok4.oralhealthplus.ui.theme.RedSoft
 import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
 import com.kelompok4.oralhealthplus.ui.theme.White
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 private val RegPrimaryBlue = BluePrimary
 private val RegBackgroundLight = White
@@ -295,12 +296,11 @@ fun RegisterScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    Button(
+                    GradientFilledButton(
                         onClick = {
                             onRegister(username, displayName, email, password, confirmPassword, verificationCode)
                         },
                         enabled = !uiState.isLoading,
-                        colors = ButtonDefaults.buttonColors(containerColor = RegPrimaryBlue),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()

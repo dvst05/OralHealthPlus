@@ -78,6 +78,7 @@ import com.kelompok4.oralhealthplus.feature.clinic.ClinicSection
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicViewModel
 import com.kelompok4.oralhealthplus.ui.theme.BluePrimary
 import com.kelompok4.oralhealthplus.ui.theme.SurfaceBlue
+import com.kelompok4.oralhealthplus.ui.components.GradientFilledButton
 
 enum class AppTab {
     HOME,
@@ -418,9 +419,8 @@ fun MainAppHost() {
                 title = { Text("Perlu Masuk Akun", fontWeight = FontWeight.SemiBold) },
                 text = { Text(gateMessage) },
                 confirmButton = {
-                    Button(
+                    GradientFilledButton(
                         onClick = { openLoginFromGate() },
-                        colors = ButtonDefaults.buttonColors(containerColor = NavPrimaryBlue)
                     ) {
                         Text("Masuk / Daftar")
                     }
