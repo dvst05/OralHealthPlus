@@ -1,0 +1,107 @@
+{
+  "versi": 1,
+  "penyakit": [
+    {
+      "id": "Calculus",
+      "nama": "Karang Gigi (Kalkulus)",
+      "ringkasan": "Plak yang tidak dibersihkan lama-kelamaan mengeras menjadi karang gigi. Karang gigi menempel kuat dan hanya bisa dibersihkan oleh dokter gigi.",
+      "gejala": [
+        "Endapan keras berwarna kuning atau cokelat di sekitar garis gusi",
+        "Permukaan gigi terasa kasar",
+        "Bau mulut yang tidak hilang"
+      ],
+      "pencegahan": [
+        "Sikat gigi dua kali sehari dengan pasta gigi berfluoride",
+        "Bersihkan sela gigi dengan benang gigi setiap hari",
+        "Lakukan pembersihan karang gigi (scaling) di dokter gigi secara rutin"
+      ],
+      "kataKunci": ["karang gigi", "kalkulus", "plak gigi", "scaling gigi", "tartar", "dental calculus", "dental plaque"],
+      "sumber": "https://my.clevelandclinic.org/health/diseases/25102-tartar"
+    },
+    {
+      "id": "Caries",
+      "nama": "Gigi Berlubang (Karies)",
+      "ringkasan": "Kerusakan lapisan gigi akibat asam yang dihasilkan bakteri dari sisa makanan dan minuman manis. Jika dibiarkan, lubang dapat membesar hingga mencapai saraf gigi.",
+      "gejala": [
+        "Bintik putih, cokelat, atau hitam pada permukaan gigi",
+        "Gigi ngilu saat makan atau minum yang manis, panas, atau dingin",
+        "Lubang yang terlihat atau terasa pada gigi"
+      ],
+      "pencegahan": [
+        "Sikat gigi dua kali sehari dengan pasta gigi berfluoride",
+        "Batasi makanan dan minuman manis, terutama di antara waktu makan",
+        "Periksakan gigi ke dokter gigi secara rutin"
+      ],
+      "kataKunci": ["gigi berlubang", "karies", "karies gigi", "kerusakan gigi", "tooth decay", "dental caries", "cavity"],
+      "sumber": "https://www.nhs.uk/conditions/tooth-decay/"
+    },
+    {
+      "id": "Gingivitis",
+      "nama": "Radang Gusi (Gingivitis)",
+      "ringkasan": "Peradangan pada gusi yang umumnya disebabkan oleh penumpukan plak. Gingivitis dapat pulih dengan perawatan yang tepat, tetapi jika dibiarkan dapat berkembang menjadi periodontitis.",
+      "gejala": [
+        "Gusi merah dan bengkak",
+        "Gusi mudah berdarah saat menyikat gigi",
+        "Bau mulut"
+      ],
+      "pencegahan": [
+        "Sikat gigi dua kali sehari, termasuk di garis gusi",
+        "Bersihkan sela gigi dengan benang gigi setiap hari",
+        "Periksakan gigi dan bersihkan karang gigi secara rutin"
+      ],
+      "kataKunci": ["gingivitis", "radang gusi", "gusi berdarah", "gusi bengkak", "penyakit gusi", "gum disease", "bleeding gums"],
+      "sumber": "https://www.nhs.uk/conditions/gum-disease/"
+    },
+    {
+      "id": "Hypodontia",
+      "nama": "Hipodonsia (Gigi Tidak Tumbuh)",
+      "ringkasan": "Kondisi bawaan ketika satu hingga beberapa gigi tidak tumbuh. Kondisi ini tidak dapat dicegah, tetapi dapat ditangani oleh dokter gigi agar fungsi kunyah dan penampilan tetap baik.",
+      "gejala": [
+        "Terdapat celah karena gigi tidak tumbuh",
+        "Gigi susu tidak tanggal karena gigi tetap di bawahnya tidak ada",
+        "Susunan gigi tidak rata atau bergeser"
+      ],
+      "pencegahan": [
+        "Tidak dapat dicegah karena umumnya bersifat bawaan",
+        "Periksakan gigi anak sejak dini agar kondisi diketahui lebih awal",
+        "Konsultasikan pilihan perawatan seperti kawat gigi, gigi tiruan, atau implan"
+      ],
+      "kataKunci": ["hipodonsia", "hypodontia", "gigi tidak tumbuh", "agenesis gigi", "missing teeth", "tooth agenesis"],
+      "sumber": "https://my.clevelandclinic.org/health/diseases/24192-hypodontia-missing-teeth"
+    },
+    {
+      "id": "Mouth_Ulcer",
+      "nama": "Sariawan (Ulkus Mulut)",
+      "ringkasan": "Luka kecil dan nyeri di dalam mulut, misalnya di pipi bagian dalam, bibir, atau lidah. Sebagian besar sariawan sembuh sendiri dalam satu sampai dua minggu.",
+      "gejala": [
+        "Luka bulat berwarna putih atau kuning dengan tepi merah",
+        "Nyeri saat makan, minum, atau berbicara",
+        "Luka tidak kunjung sembuh lebih dari tiga minggu perlu diperiksakan"
+      ],
+      "pencegahan": [
+        "Gunakan sikat gigi berbulu lembut agar tidak melukai mulut",
+        "Hindari makanan yang terlalu pedas, asam, atau keras saat sariawan",
+        "Jaga pola makan bergizi dan kelola stres"
+      ],
+      "kataKunci": ["sariawan", "ulkus mulut", "luka mulut", "stomatitis", "mouth ulcer", "canker sore", "aphthous ulcer"],
+      "sumber": "https://www.nhs.uk/conditions/mouth-ulcers/"
+    },
+    {
+      "id": "Tooth_Discoloration",
+      "nama": "Perubahan Warna Gigi",
+      "ringkasan": "Gigi berubah warna menjadi kuning, cokelat, atau keabuan. Penyebabnya dapat berasal dari noda makanan, minuman, dan rokok, atau dari dalam gigi akibat obat maupun cedera.",
+      "gejala": [
+        "Gigi tampak kuning, cokelat, atau keabuan",
+        "Noda yang tidak hilang dengan menyikat gigi biasa",
+        "Satu gigi tampak lebih gelap dibanding gigi lainnya"
+      ],
+      "pencegahan": [
+        "Kurangi kopi, teh, dan minuman berwarna pekat, lalu berkumur setelahnya",
+        "Hindari merokok",
+        "Sikat gigi secara teratur dan bersihkan gigi di dokter gigi"
+      ],
+      "kataKunci": ["perubahan warna gigi", "gigi kuning", "noda gigi", "gigi menguning", "tooth discoloration", "tooth stain", "yellow teeth"],
+      "sumber": "https://my.clevelandclinic.org/health/diseases/10958-tooth-discoloration"
+    }
+  ]
+}
