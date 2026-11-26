@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.contentDescription
@@ -78,15 +79,23 @@ fun PillButton(
     }
 }
 
-/** Tombol gradien biru seperti "Scan Now" di Home. */
+/**
+ * Tombol gradien. Default biru seperti "Scan Now" di Home.
+ * Untuk tombol Logout: GradientButton("Log out", onClick = { ... }, brush = LogoutGradient)
+ */
 @Composable
-fun GradientButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun GradientButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    brush: Brush = PrimaryGradient,
+) {
     Box(
         modifier
             .fillMaxWidth()
             .height(44.dp)
             .clip(RoundedCornerShape(30.dp))
-            .background(PrimaryGradient)
+            .background(brush)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
