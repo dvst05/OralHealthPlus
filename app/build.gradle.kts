@@ -21,6 +21,10 @@ val newsApiKey: String = localProps.getProperty("NEWS_API_KEY", "")
     .trim()
     .removeSurrounding("\"")
     .removeSurrounding("'")
+val googleWebClientId: String = localProps.getProperty("GOOGLE_WEB_CLIENT_ID", "")
+    .trim()
+    .removeSurrounding("\"")
+    .removeSurrounding("'")
 
 android {
     namespace = "com.kelompok4.oralhealthplus"
@@ -38,6 +42,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
         buildConfigField("String", "NEWS_API_KEY", "\"$newsApiKey\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
 
     buildTypes {
@@ -81,9 +86,13 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.lottie.compose)
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
+    // Model diekspor dengan TF 2.21 (butuh runtime >= 2.17). Package Kotlin tetap org.tensorflow.lite.
+    implementation(libs.litert)
     implementation(libs.play.services.location)
     implementation(libs.osmdroid.android)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

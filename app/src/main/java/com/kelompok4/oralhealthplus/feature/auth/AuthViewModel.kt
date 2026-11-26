@@ -2,6 +2,8 @@
 
 package com.kelompok4.oralhealthplus.feature.auth
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -17,17 +19,54 @@ data class AuthUiState(
     val isLoading: Boolean = false,
     val activeSession: AuthSession? = null,
     val errorMessage: String? = null,
-    val infoMessage: String? = null
+    val infoMessage: String? = null,
+    val pendingOtpCode: String? = null,
+    val isOtpSent: Boolean = false
 )
 
 class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState(activeSession = repository.getActiveSession()))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
 
-    fun login(username: String, password: String) {
+    init {
+        if (_uiState.value.activeSession != null) {
+            viewModelScope.launch {
+                val refreshed = repository.refreshActiveSession()
+                if (refreshed != null) {
+                    _uiState.update { it.copy(activeSession = refreshed) }
+                }
+            }
+        }
+    }
+
+    fun requestVerificationCode(email: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.login(username, password)
+            repository.sendVerificationCode(email)
+                .onSuccess { otpCode ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            pendingOtpCode = otpCode,
+                            isOtpSent = true,
+                            infoMessage = "Kode verifikasi dikirim ke $email (Kode verifikasi: $otpCode)"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Gagal mengirim kode verifikasi") }
+                }
+        }
+    }
+
+    fun resetVerificationState() {
+        _uiState.update { it.copy(pendingOtpCode = null, isOtpSent = false) }
+    }
+
+    fun login(identifier: String, password: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.login(identifier, password)
                 .onSuccess { session ->
                     _uiState.update {
                         it.copy(
@@ -43,15 +82,44 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun register(username: String, displayName: String, password: String, confirmPassword: String) {
+    fun register(
+        username: String,
+        displayName: String,
+        email: String,
+        password: String,
+        confirmPassword: String,
+        inputOtp: String
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.register(username, displayName, password, confirmPassword)
+            val currentOtp = _uiState.value.pendingOtpCode
+            if (currentOtp == null || !_uiState.value.isOtpSent) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Silakan klik 'Kirim Kode' terlebih dahulu untuk verifikasi email"
+                    )
+                }
+                return@launch
+            }
+            if (inputOtp.trim() != currentOtp.trim()) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Kode verifikasi tidak sesuai. Silakan periksa kembali."
+                    )
+                }
+                return@launch
+            }
+
+            repository.register(username, displayName, email, password, confirmPassword)
                 .onSuccess { session ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             activeSession = session,
+                            pendingOtpCode = null,
+                            isOtpSent = false,
                             infoMessage = "Registrasi berhasil"
                         )
                     }
@@ -62,21 +130,154 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun signInWithGoogleLocal(email: String, displayName: String) {
+    fun signInWithGoogle(context: android.content.Context) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
-            repository.signInWithGoogleLocal(email, displayName)
+            val googleResult = GoogleAuthHelper.signInWithGoogle(context)
+            googleResult.onSuccess { googleUser ->
+                repository.signInWithGoogleAccount(googleUser.email, googleUser.displayName)
+                    .onSuccess { session ->
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                activeSession = session,
+                                infoMessage = "Berhasil masuk dengan akun Google: ${googleUser.email}"
+                            )
+                        }
+                    }
+                    .onFailure { err ->
+                        _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Gagal menyimpan akun") }
+                    }
+            }.onFailure { err ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in Google gagal") }
+            }
+        }
+    }
+
+    fun updateProfile(
+        displayName: String,
+        email: String,
+        whatsappNumber: String
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.updateProfile(displayName, email, whatsappNumber)
                 .onSuccess { session ->
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             activeSession = session,
-                            infoMessage = "Masuk dengan akun Google berhasil"
+                            infoMessage = "Profil berhasil diperbarui"
                         )
                     }
                 }
                 .onFailure { err ->
-                    _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in gagal") }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal memperbarui profil"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun updateProfilePhoto(context: Context, uri: Uri) {
+        val current = _uiState.value.activeSession ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            ProfilePhotoStorage.saveProfilePhoto(
+                context = context,
+                username = current.username,
+                sourceUri = uri,
+                previousPath = current.profilePhotoPath
+            ).onSuccess { savedPath ->
+                repository.updateProfile(
+                    displayNameRaw = current.displayName,
+                    emailRaw = current.email,
+                    whatsappRaw = current.whatsappNumber,
+                    profilePhotoPath = savedPath
+                ).onSuccess { session ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSession = session,
+                            infoMessage = "Foto profil berhasil diperbarui"
+                        )
+                    }
+                }.onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal menyimpan foto profil"
+                        )
+                    }
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = err.message ?: "Gagal memproses foto profil"
+                    )
+                }
+            }
+        }
+    }
+
+    fun removeProfilePhoto() {
+        val current = _uiState.value.activeSession ?: return
+        if (current.profilePhotoPath.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            val oldPath = current.profilePhotoPath
+            repository.updateProfile(
+                displayNameRaw = current.displayName,
+                emailRaw = current.email,
+                whatsappRaw = current.whatsappNumber,
+                profilePhotoPath = ""
+            ).onSuccess { session ->
+                ProfilePhotoStorage.deleteProfilePhotoFile(oldPath)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        activeSession = session,
+                        infoMessage = "Foto profil dihapus"
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = err.message ?: "Gagal menghapus foto profil"
+                    )
+                }
+            }
+        }
+    }
+
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        confirmNewPassword: String
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.changePassword(currentPassword, newPassword, confirmNewPassword)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            infoMessage = "Password berhasil diubah"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal mengubah password"
+                        )
+                    }
                 }
         }
     }
@@ -85,6 +286,30 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         viewModelScope.launch {
             repository.logout()
             _uiState.update { it.copy(activeSession = null) }
+        }
+    }
+
+    fun deleteAccount() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.deleteAccount()
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSession = null,
+                            infoMessage = "Akun berhasil dihapus"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal menghapus akun"
+                        )
+                    }
+                }
         }
     }
 

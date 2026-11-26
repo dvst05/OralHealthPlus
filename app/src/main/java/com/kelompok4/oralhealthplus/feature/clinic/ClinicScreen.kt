@@ -48,7 +48,9 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -56,6 +58,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.kelompok4.oralhealthplus.data.local.entity.DetectionHistoryEntity
+import com.kelompok4.oralhealthplus.feature.doctor.DentalDoctor
+import com.kelompok4.oralhealthplus.feature.doctor.DoctorCatalog
+import com.kelompok4.oralhealthplus.feature.doctor.DoctorListSection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,12 +91,21 @@ private val ClinicTextPrimary = Color(0xFF0F172A)
 private val ClinicTextMuted = Color(0xFF475569)
 private val ClinicStarAmber = Color(0xFFD97706)
 
+enum class ClinicSection {
+    CLINICS,
+    DOCTORS
+}
+
 @Composable
 fun ClinicRoute(
-    vm: ClinicViewModel = viewModel()
+    vm: ClinicViewModel = viewModel(),
+    initialSection: ClinicSection = ClinicSection.CLINICS,
+    latestDetection: DetectionHistoryEntity? = null,
+    severeContext: String? = null
 ) {
     val uiState by vm.uiState.collectAsState()
     val context = LocalContext.current
+    var activeSection by remember(initialSection) { mutableStateOf(initialSection) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -97,30 +115,38 @@ fun ClinicRoute(
         vm.onPermissionResult(granted)
     }
 
-    LaunchedEffect(Unit) {
-        val fineGranted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        val coarseGranted = ContextCompat.checkSelfPermission(
-            context, Manifest.permission.ACCESS_COARSE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
+    LaunchedEffect(activeSection) {
+        if (activeSection == ClinicSection.CLINICS) {
+            val fineGranted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+            val coarseGranted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
 
-        if (fineGranted || coarseGranted) {
-            if (uiState.clinics.isEmpty() && !uiState.isLoading) {
-                vm.onPermissionResult(true)
-            }
-        } else {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
+            if (fineGranted || coarseGranted) {
+                if (uiState.clinics.isEmpty() && !uiState.isLoading) {
+                    vm.onPermissionResult(true)
+                }
+            } else {
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
                 )
-            )
+            }
         }
     }
 
     ClinicScreen(
         uiState = uiState,
+        activeSection = activeSection,
+        latestDetection = latestDetection,
+        onSelectSection = { activeSection = it },
+        onDoctorClick = { doctor ->
+            DoctorCatalog.openDoctorWhatsApp(context, doctor, latestDetection, severeContext)
+        },
         onRefresh = {
             if (uiState.hasLocationPermission) {
                 vm.loadNearbyClinics(forceRefresh = true)
@@ -144,6 +170,10 @@ fun ClinicRoute(
 @Composable
 fun ClinicScreen(
     uiState: ClinicUiState,
+    activeSection: ClinicSection = ClinicSection.CLINICS,
+    latestDetection: DetectionHistoryEntity? = null,
+    onSelectSection: (ClinicSection) -> Unit = {},
+    onDoctorClick: (DentalDoctor) -> Unit = {},
     onRefresh: () -> Unit,
     onSelectRadius: (Int) -> Unit,
     onClearError: () -> Unit,
@@ -159,25 +189,35 @@ fun ClinicScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Rekomendasi Klinik Terdekat",
+                            text = if (activeSection == ClinicSection.DOCTORS) {
+                                "Daftar Dokter Gigi"
+                            } else {
+                                "Rekomendasi Klinik Terdekat"
+                            },
                             color = ClinicTextPrimary,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Urutan berdasarkan jarak, rating & jam operasional",
+                            text = if (activeSection == ClinicSection.DOCTORS) {
+                                "Hubungi dokter gigi langsung via WhatsApp"
+                            } else {
+                                "Urutan berdasarkan jarak, rating & jam operasional"
+                            },
                             color = ClinicTextMuted,
                             fontSize = 12.sp
                         )
                     }
                 },
                 actions = {
-                    IconButton(onClick = onRefresh, enabled = !uiState.isLoading) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Muat ulang lokasi",
-                            tint = ClinicPrimaryBlue
-                        )
+                    if (activeSection == ClinicSection.CLINICS) {
+                        IconButton(onClick = onRefresh, enabled = !uiState.isLoading) {
+                            Icon(
+                                imageVector = Icons.Filled.Refresh,
+                                contentDescription = "Muat ulang lokasi",
+                                tint = ClinicPrimaryBlue
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
@@ -189,6 +229,45 @@ fun ClinicScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            PrimaryTabRow(
+                selectedTabIndex = if (activeSection == ClinicSection.CLINICS) 0 else 1,
+                containerColor = Color.White,
+                contentColor = ClinicPrimaryBlue
+            ) {
+                Tab(
+                    selected = activeSection == ClinicSection.CLINICS,
+                    onClick = { onSelectSection(ClinicSection.CLINICS) },
+                    text = {
+                        Text(
+                            text = "Klinik Terdekat",
+                            fontSize = 13.sp,
+                            fontWeight = if (activeSection == ClinicSection.CLINICS) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (activeSection == ClinicSection.CLINICS) ClinicPrimaryBlue else ClinicTextMuted
+                        )
+                    }
+                )
+                Tab(
+                    selected = activeSection == ClinicSection.DOCTORS,
+                    onClick = { onSelectSection(ClinicSection.DOCTORS) },
+                    text = {
+                        Text(
+                            text = "Daftar Dokter (WA)",
+                            fontSize = 13.sp,
+                            fontWeight = if (activeSection == ClinicSection.DOCTORS) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (activeSection == ClinicSection.DOCTORS) ClinicPrimaryBlue else ClinicTextMuted
+                        )
+                    }
+                )
+            }
+
+            if (activeSection == ClinicSection.DOCTORS) {
+                DoctorListSection(
+                    latestDetection = latestDetection,
+                    onDoctorClick = onDoctorClick
+                )
+                return@Column
+            }
+
             GpsStatusBanner(
                 hasPermission = uiState.hasLocationPermission,
                 clinicCount = uiState.clinics.size,

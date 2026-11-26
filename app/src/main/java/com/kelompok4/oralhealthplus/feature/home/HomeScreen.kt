@@ -22,9 +22,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +35,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kelompok4.oralhealthplus.R
+import com.kelompok4.oralhealthplus.feature.auth.ProfilePhotoStorage
 import com.kelompok4.oralhealthplus.ui.components.GradientButton
 import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
 
@@ -65,6 +68,9 @@ fun HomeScreen(
     onChatbot: () -> Unit,
     onPengaturan: () -> Unit,
     onToothpaste: (() -> Unit)? = null, // null = kartu pasta gigi disembunyikan
+    onDoctors: (() -> Unit)? = null,
+    onEncyclopedia: (() -> Unit)? = null,
+    profilePhotoPath: String = ""
 ) {
     Column(
         Modifier
@@ -74,22 +80,40 @@ fun HomeScreen(
             .padding(horizontal = 24.dp, vertical = 32.dp),
         verticalArrangement = Arrangement.spacedBy(36.dp),
     ) {
-        Header(namaPengguna, onPengaturan)
+        Header(namaPengguna, profilePhotoPath, onPengaturan)
         KartuScan(onScan)
         BagianLearn(onClinic, onVideos, onArticles, onReport)
-        BagianMoreFeature(onChatbot, onToothpaste)
+        BagianMoreFeature(onChatbot, onToothpaste, onDoctors, onEncyclopedia)
     }
 }
 
 @Composable
-private fun Header(namaPengguna: String, onPengaturan: () -> Unit) {
+private fun Header(namaPengguna: String, profilePhotoPath: String, onPengaturan: () -> Unit) {
+    val avatarBitmap = remember(profilePhotoPath) {
+        ProfilePhotoStorage.loadProfilePhotoBitmap(profilePhotoPath)
+    }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            painterResource(R.drawable.home_avatar),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.size(56.dp).clip(CircleShape),
-        )
+        if (avatarBitmap != null) {
+            Image(
+                bitmap = avatarBitmap.asImageBitmap(),
+                contentDescription = "Foto profil",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onPengaturan),
+            )
+        } else {
+            Image(
+                painterResource(R.drawable.home_avatar),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onPengaturan),
+            )
+        }
         Column(Modifier.weight(1f).padding(start = 12.dp)) {
             Text("Hi, Welcome!", style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp), color = MaterialTheme.colorScheme.primary)
             Text(
@@ -160,7 +184,12 @@ private fun MenuLearn(@DrawableRes ikon: Int, label: String, onClick: () -> Unit
 }
 
 @Composable
-private fun BagianMoreFeature(onChatbot: () -> Unit, onToothpaste: (() -> Unit)?) {
+private fun BagianMoreFeature(
+    onChatbot: () -> Unit,
+    onToothpaste: (() -> Unit)?,
+    onDoctors: (() -> Unit)? = null,
+    onEncyclopedia: (() -> Unit)? = null
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         JudulBagian("More Feature")
         Text(
@@ -169,6 +198,12 @@ private fun BagianMoreFeature(onChatbot: () -> Unit, onToothpaste: (() -> Unit)?
         )
         Spacer(Modifier.height(4.dp))
         KartuFitur(R.drawable.home_chatbot, "Chatbot Consultant", "Discuss Anything About Oral Disease", onChatbot)
+        if (onDoctors != null) {
+            KartuFitur(R.drawable.home_clinic, "Hubungi Dokter Gigi (WA)", "Pilih dokter gigi & konsultasi langsung via WhatsApp", onDoctors)
+        }
+        if (onEncyclopedia != null) {
+            KartuFitur(R.drawable.home_articles, "Ensiklopedia Penyakit Mulut", "Pelajari gejala, penyebab & pencegahan penyakit gigi", onEncyclopedia)
+        }
         if (onToothpaste != null) {
             KartuFitur(R.drawable.home_toothpaste, "Are you still using regular toothpaste?", "Choose the one that’s right for you", onToothpaste)
         }

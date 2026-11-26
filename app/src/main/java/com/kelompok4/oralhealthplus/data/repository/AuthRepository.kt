@@ -10,7 +10,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-data class AuthSession(val username: String, val displayName: String, val authProvider: String)
+data class AuthSession(
+    val username: String,
+    val displayName: String,
+    val authProvider: String,
+    val email: String = "",
+    val whatsappNumber: String = "",
+    val profilePhotoPath: String = ""
+)
 
 class AuthRepository(private val userDao: UserDao, private val sessionManager: SessionManager) {
 
@@ -19,20 +26,44 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
         return AuthSession(
             username = username,
             displayName = sessionManager.getDisplayName().ifBlank { username },
-            authProvider = sessionManager.getAuthProvider()
+            authProvider = sessionManager.getAuthProvider(),
+            email = sessionManager.getEmail(),
+            whatsappNumber = sessionManager.getWhatsappNumber(),
+            profilePhotoPath = sessionManager.getProfilePhotoPath()
         )
+    }
+
+    suspend fun refreshActiveSession(): AuthSession? = withContext(Dispatchers.IO) {
+        val username = sessionManager.getLoggedInUsername() ?: return@withContext null
+        val user = userDao.getUserByUsername(username) ?: return@withContext getActiveSession()
+        saveSession(user)
+        user.toSession()
+    }
+
+    suspend fun sendVerificationCode(emailRaw: String): Result<String> = withContext(Dispatchers.IO) {
+        val email = emailRaw.trim().lowercase()
+        if (!email.contains("@") || !email.contains(".") || email.length < 5) {
+            return@withContext Result.failure(IllegalArgumentException("Format alamat email tidak valid"))
+        }
+        val randomOtp = (100000..999999).random().toString()
+        Result.success(randomOtp)
     }
 
     suspend fun register(
         usernameRaw: String,
         displayNameRaw: String,
+        emailRaw: String,
         password: String,
         confirmPassword: String
     ): Result<AuthSession> = withContext(Dispatchers.IO) {
         val username = usernameRaw.trim().lowercase()
         val displayName = displayNameRaw.trim().ifBlank { username }
+        val email = emailRaw.trim().lowercase()
         if (username.length !in 3..32) {
             return@withContext Result.failure(IllegalArgumentException("Username harus 3–32 karakter"))
+        }
+        if (email.isNotBlank() && (!email.contains("@") || !email.contains("."))) {
+            return@withContext Result.failure(IllegalArgumentException("Format alamat email tidak valid"))
         }
         if (password.length < 6) {
             return@withContext Result.failure(IllegalArgumentException("Password minimal 6 karakter"))
@@ -47,53 +78,191 @@ class AuthRepository(private val userDao: UserDao, private val sessionManager: S
         val userEntity = UserEntity(
             username = username,
             displayName = displayName,
-            email = "",
+            email = email,
             passwordHash = passwordHash,
             authProvider = "LOCAL"
         )
         userDao.insertUser(userEntity)
         saveSession(userEntity)
-        Result.success(AuthSession(username, displayName, "LOCAL"))
+        Result.success(userEntity.toSession())
     }
 
-    suspend fun login(usernameRaw: String, password: String): Result<AuthSession> = withContext(Dispatchers.IO) {
-        val username = usernameRaw.trim().lowercase()
-        if (username.isBlank() || password.isBlank()) {
-            return@withContext Result.failure(IllegalArgumentException("Username dan password wajib diisi"))
+    suspend fun login(identifierRaw: String, password: String): Result<AuthSession> = withContext(Dispatchers.IO) {
+        val identifier = identifierRaw.trim().lowercase()
+        if (identifier.isBlank() || password.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("Username/email dan password wajib diisi"))
         }
-        val user = userDao.getUserByUsername(username)
+        val user = userDao.getUserByIdentifier(identifier)
         if (user == null || !PasswordHasher.verifyPassword(password, user.passwordHash)) {
-            return@withContext Result.failure(IllegalArgumentException("Username atau password salah"))
+            return@withContext Result.failure(IllegalArgumentException("Username/email atau password salah"))
         }
         saveSession(user)
-        Result.success(AuthSession(user.username, user.displayName, user.authProvider))
+        Result.success(user.toSession())
     }
 
-    suspend fun signInWithGoogleLocal(emailRaw: String, displayNameRaw: String): Result<AuthSession> = withContext(Dispatchers.IO) {
+    suspend fun signInWithGoogleAccount(emailRaw: String, displayNameRaw: String): Result<AuthSession> = withContext(Dispatchers.IO) {
         val email = emailRaw.trim().lowercase()
         if (!email.contains("@") || email.length < 5) {
             return@withContext Result.failure(IllegalArgumentException("Format email Google tidak valid"))
         }
         val username = email.substringBefore("@").ifBlank { email }.take(32)
-        val displayName = displayNameRaw.trim().ifBlank { username }
-        val passwordHash = PasswordHasher.hashPassword(UUID.randomUUID().toString())
+        val existing = userDao.getUserByUsername(username)
+        val displayName = existing?.displayName?.ifBlank { displayNameRaw.trim() }
+            ?: displayNameRaw.trim().ifBlank { username }
+        val passwordHash = existing?.passwordHash ?: PasswordHasher.hashPassword(UUID.randomUUID().toString())
         val userEntity = UserEntity(
             username = username,
             displayName = displayName,
             email = email,
+            whatsappNumber = existing?.whatsappNumber.orEmpty(),
+            profilePhotoPath = existing?.profilePhotoPath.orEmpty(),
             passwordHash = passwordHash,
-            authProvider = "GOOGLE_LOCAL"
+            authProvider = "GOOGLE",
+            createdAt = existing?.createdAt ?: System.currentTimeMillis()
         )
         userDao.upsertUser(userEntity)
         saveSession(userEntity)
-        Result.success(AuthSession(username, displayName, "GOOGLE_LOCAL"))
+        Result.success(userEntity.toSession())
+    }
+
+    suspend fun updateProfile(
+        displayNameRaw: String,
+        emailRaw: String,
+        whatsappRaw: String,
+        profilePhotoPath: String? = null
+    ): Result<AuthSession> = withContext(Dispatchers.IO) {
+        val currentUsername = sessionManager.getLoggedInUsername()
+            ?: return@withContext Result.failure(IllegalStateException("Tidak ada sesi pengguna aktif"))
+        val existing = userDao.getUserByUsername(currentUsername)
+            ?: return@withContext Result.failure(IllegalStateException("Data akun tidak ditemukan"))
+
+        val displayName = displayNameRaw.trim()
+        if (displayName.length !in 2..60) {
+            return@withContext Result.failure(IllegalArgumentException("Nama lengkap harus 2–60 karakter"))
+        }
+
+        val email = emailRaw.trim().lowercase()
+        if (email.isNotBlank() && (!email.contains("@") || !email.contains(".") || email.length < 5)) {
+            return@withContext Result.failure(IllegalArgumentException("Format alamat email tidak valid"))
+        }
+
+        val normalizedWhatsapp = normalizeWhatsappNumber(whatsappRaw)
+            ?: return@withContext Result.failure(
+                IllegalArgumentException("Nomor WhatsApp tidak valid (gunakan 9–15 digit, contoh: 081234567890)")
+            )
+
+        val finalPhotoPath = profilePhotoPath ?: existing.profilePhotoPath
+        userDao.updateUserProfile(
+            username = existing.username,
+            displayName = displayName,
+            email = email,
+            whatsappNumber = normalizedWhatsapp,
+            profilePhotoPath = finalPhotoPath
+        )
+
+        val updated = existing.copy(
+            displayName = displayName,
+            email = email,
+            whatsappNumber = normalizedWhatsapp,
+            profilePhotoPath = finalPhotoPath
+        )
+        saveSession(updated)
+        Result.success(updated.toSession())
+    }
+
+    suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        confirmNewPassword: String
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        val currentUsername = sessionManager.getLoggedInUsername()
+            ?: return@withContext Result.failure(IllegalStateException("Tidak ada sesi pengguna aktif"))
+        val user = userDao.getUserByUsername(currentUsername)
+            ?: return@withContext Result.failure(IllegalStateException("Data akun tidak ditemukan"))
+
+        if (user.authProvider.startsWith("GOOGLE")) {
+            return@withContext Result.failure(
+                IllegalStateException("Akun Google menggunakan kata sandi dari layanan Google.")
+            )
+        }
+        if (currentPassword.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("Password saat ini wajib diisi"))
+        }
+        if (!PasswordHasher.verifyPassword(currentPassword, user.passwordHash)) {
+            return@withContext Result.failure(IllegalArgumentException("Password saat ini salah"))
+        }
+        if (newPassword.length < 6) {
+            return@withContext Result.failure(IllegalArgumentException("Password baru minimal 6 karakter"))
+        }
+        if (newPassword != confirmNewPassword) {
+            return@withContext Result.failure(IllegalArgumentException("Konfirmasi password baru tidak cocok"))
+        }
+        if (newPassword == currentPassword) {
+            return@withContext Result.failure(IllegalArgumentException("Password baru harus berbeda dari password saat ini"))
+        }
+
+        val newHash = PasswordHasher.hashPassword(newPassword)
+        userDao.updatePasswordHash(user.username, newHash)
+        Result.success(Unit)
     }
 
     fun logout() {
         sessionManager.clearSession()
     }
 
+    suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
+        val currentUsername = sessionManager.getLoggedInUsername()
+            ?: return@withContext Result.failure(IllegalStateException("Tidak ada sesi pengguna aktif"))
+        try {
+            val photoPath = sessionManager.getProfilePhotoPath()
+            userDao.deleteUserByUsername(currentUsername)
+            sessionManager.clearSecurityGateState(currentUsername)
+            sessionManager.clearSession()
+            com.kelompok4.oralhealthplus.feature.auth.ProfilePhotoStorage.deleteProfilePhotoFile(photoPath)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private fun saveSession(userEntity: UserEntity) {
-        sessionManager.saveSession(userEntity.username, userEntity.displayName, userEntity.authProvider)
+        sessionManager.saveSession(
+            username = userEntity.username,
+            displayName = userEntity.displayName,
+            authProvider = userEntity.authProvider,
+            email = userEntity.email,
+            whatsappNumber = userEntity.whatsappNumber,
+            profilePhotoPath = userEntity.profilePhotoPath
+        )
+    }
+
+    private fun UserEntity.toSession() = AuthSession(
+        username = username,
+        displayName = displayName,
+        authProvider = authProvider,
+        email = email,
+        whatsappNumber = whatsappNumber,
+        profilePhotoPath = profilePhotoPath
+    )
+
+    companion object {
+        /**
+         * Memvalidasi & menormalisasi nomor WhatsApp:
+         * - Kosong -> "" (valid, opsional)
+         * - Hanya menerima digit (dengan opsional awalan '+', spasi, atau tanda '-')
+         * - Panjang digit harus 9..15 digit
+         */
+        fun normalizeWhatsappNumber(raw: String): String? {
+            val trimmed = raw.trim()
+            if (trimmed.isEmpty()) return ""
+            val cleaned = trimmed.replace(Regex("[\\s\\-()]"), "")
+            val hasPlus = cleaned.startsWith("+")
+            val digits = if (hasPlus) cleaned.substring(1) else cleaned
+            if (!digits.all { it.isDigit() } || digits.length !in 9..15) return null
+            return when {
+                digits.startsWith("0") -> "62${digits.substring(1)}"
+                else -> digits
+            }
+        }
     }
 }

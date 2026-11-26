@@ -20,30 +20,45 @@ import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
 fun AccountRoute(
     vm: AuthViewModel,
     onOpenChatbot: () -> Unit,
-    onOpenHistory: () -> Unit
+    onOpenHistory: () -> Unit,
+    onOpenOnboarding: (() -> Unit)? = null
 ) {
     val uiState by vm.uiState.collectAsState()
     var showRegister by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val activeSession = uiState.activeSession
     if (activeSession != null) {
         AccountProfileScreen(
             session = activeSession,
             infoMessage = uiState.infoMessage,
+            errorMessage = uiState.errorMessage,
+            isLoading = uiState.isLoading,
+            onUpdateProfile = vm::updateProfile,
+            onPickProfilePhoto = { uri -> vm.updateProfilePhoto(context, uri) },
+            onRemoveProfilePhoto = vm::removeProfilePhoto,
+            onChangePassword = vm::changePassword,
+            onOpenOnboarding = onOpenOnboarding,
             onOpenChatbot = onOpenChatbot,
             onOpenHistory = onOpenHistory,
             onLogout = {
                 showRegister = false
                 vm.logout()
             },
+            onDeleteAccount = {
+                showRegister = false
+                vm.deleteAccount()
+            },
             onClearMessages = vm::clearMessages
         )
     } else if (showRegister) {
         RegisterScreen(
             uiState = uiState,
+            onRequestVerificationCode = vm::requestVerificationCode,
             onRegister = vm::register,
             onNavigateToLogin = {
                 vm.clearMessages()
+                vm.resetVerificationState()
                 showRegister = false
             },
             onClearMessages = vm::clearMessages
@@ -52,7 +67,7 @@ fun AccountRoute(
         LoginScreen(
             uiState = uiState,
             onLogin = vm::login,
-            onGoogleLocalSignIn = vm::signInWithGoogleLocal,
+            onGoogleSignInClick = { vm.signInWithGoogle(context) },
             onNavigateToRegister = {
                 vm.clearMessages()
                 showRegister = true
@@ -69,6 +84,7 @@ fun LoginRoute(
     onNavigateToRegister: () -> Unit
 ) {
     val uiState by vm.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(uiState.activeSession) {
         if (uiState.activeSession != null) {
             onAuthenticated()
@@ -77,7 +93,7 @@ fun LoginRoute(
     LoginScreen(
         uiState = uiState,
         onLogin = vm::login,
-        onGoogleLocalSignIn = vm::signInWithGoogleLocal,
+        onGoogleSignInClick = { vm.signInWithGoogle(context) },
         onNavigateToRegister = onNavigateToRegister,
         onClearMessages = vm::clearMessages
     )
@@ -97,6 +113,7 @@ fun RegisterRoute(
     }
     RegisterScreen(
         uiState = uiState,
+        onRequestVerificationCode = vm::requestVerificationCode,
         onRegister = vm::register,
         onNavigateToLogin = onNavigateToLogin,
         onClearMessages = vm::clearMessages
@@ -126,6 +143,10 @@ fun HistoryReportRoute(
 @Composable
 fun ChatbotRoute(
     vm: ChatbotViewModel,
+    onOpenLogin: () -> Unit = {},
+    onOpenScan: () -> Unit = {},
+    onOpenDoctors: () -> Unit = {},
+    onOpenClinics: () -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
     val messages by vm.messages.collectAsState()
@@ -139,6 +160,12 @@ fun ChatbotRoute(
         onClearChat = vm::clearChatHistory,
         onClearError = vm::clearError,
         onClearSecurityWarning = vm::clearSecurityWarning,
+        onDismissSevereAlert = vm::dismissSevereCaseAlert,
+        onResetDetectionReference = vm::useLatestDetectionReference,
+        onOpenLogin = onOpenLogin,
+        onOpenScan = onOpenScan,
+        onOpenDoctors = onOpenDoctors,
+        onOpenClinics = onOpenClinics,
         onBack = onBack
     )
 }

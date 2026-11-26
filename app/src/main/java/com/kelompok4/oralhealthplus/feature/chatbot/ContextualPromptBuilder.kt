@@ -12,9 +12,22 @@ enum class ResponseLengthStyle {
     DETAILED
 }
 
+enum class CaseSeverity {
+    NORMAL,
+    MODERATE_SENSITIVE,
+    SEVERE_URGENT
+}
+
+data class SeverityAssessment(
+    val severity: CaseSeverity,
+    val matchedIndicators: List<String> = emptyList(),
+    val reasonSummary: String? = null
+)
+
 data class ContextualPromptPayload(
     val systemInstruction: String,
-    val wrappedUserMessage: String
+    val wrappedUserMessage: String,
+    val severityAssessment: SeverityAssessment = SeverityAssessment(CaseSeverity.NORMAL)
 )
 
 object ContextualPromptBuilder {
@@ -35,16 +48,27 @@ object ContextualPromptBuilder {
         "cara mengatasi", "cara mencegah", "detail", "lengkap", "apa saja"
     )
 
-    private val SENSITIVE_MEDICAL_KEYWORDS = listOf(
-        "bengkak", "nanah", "bernanah", "abses", "demam", "berdarah terus", "perdarahan",
+    private val SEVERE_RED_FLAG_KEYWORDS = listOf(
+        "bengkak", "pipi bengkak", "wajah bengkak", "nanah", "bernanah", "abses",
+        "demam", "berdarah terus", "perdarahan", "pendarahan", "darah tidak berhenti",
         "nyeri hebat", "sakit hebat", "sakit parah", "tak tertahankan", "tidak tertahankan",
-        "berdenyut parah", "susah menelan", "sulit menelan", "susah buka mulut", "sulit bernapas",
-        "gigi patah", "gigi lepas", "kecelakaan", "trauma", "benjolan", "kista", "tumor", "kanker",
-        "tidak sembuh", "tak kunjung sembuh", "2 minggu", "3 minggu", "sebulan",
+        "berdenyut parah", "susah menelan", "sulit menelan", "susah buka mulut",
+        "sulit buka mulut", "sulit bernapas", "susah bernapas", "sesak napas",
+        "gigi patah", "gigi lepas", "gigi copot", "kecelakaan", "trauma",
+        "benjolan", "kista", "tumor", "kanker", "tidak sembuh", "tak kunjung sembuh",
+        "2 minggu", "3 minggu", "sebulan", "infeksi menyebar", "rahang kaku", "trismus"
+    )
+
+    private val SENSITIVE_MEDICAL_KEYWORDS = SEVERE_RED_FLAG_KEYWORDS + listOf(
         "antibiotik", "amoxicillin", "amoksisilin", "asam mefenamat", "ponstan", "ibuprofen",
         "paracetamol", "dosis", "resep", "obat keras", "cabut sendiri", "tambal sendiri",
         "operasi", "bius", "hamil", "kehamilan", "menyusui", "bayi", "balita",
         "diabetes", "gula darah", "hipertensi", "darah tinggi", "jantung", "pengencer darah", "alergi obat"
+    )
+
+    private val URGENT_REPLY_PHRASES = listOf(
+        "segera ke dokter", "segera periksa ke dokter", "segera hubungi dokter",
+        "klinik terdekat", "klinik gigi terdekat", "igd", "ugd", "gawat darurat", "penanganan medis segera"
     )
 
     fun defaultQuickPrompts(latestDetection: DetectionHistoryEntity?): List<String> {
@@ -56,7 +80,7 @@ object ContextualPromptBuilder {
         }
         val namaPenyakit = latestDetection.kelas.replace("_", " ")
         return listOf(
-            "Apa perawatan awal yang aman untuk $namaPenyakit?",
+            "Jelaskan hasil scan $namaPenyakit saya & perawatan awalnya",
             "Rekomendasi pasta & sikat gigi untuk $namaPenyakit",
             "Kapan saya harus segera periksa ke dokter gigi?"
         )
@@ -90,6 +114,57 @@ object ContextualPromptBuilder {
         return SENSITIVE_MEDICAL_KEYWORDS.any { normalized.contains(it) }
     }
 
+    /**
+     * Menilai tingkat keparahan kasus secara adaptif dari keluhan teks pengguna
+     * dan/atau hasil scan mulut terakhir (urgensi SEGERA_KE_DOKTER).
+     */
+    fun assessCaseSeverity(
+        userQuestion: String,
+        latestDetection: DetectionHistoryEntity?
+    ): SeverityAssessment {
+        val normalized = userQuestion.trim().lowercase(Locale.ROOT)
+        val matchedRedFlags = if (normalized.isEmpty()) {
+            emptyList()
+        } else {
+            SEVERE_RED_FLAG_KEYWORDS.filter { normalized.contains(it) }.distinct()
+        }
+        val highUrgencyScan = latestDetection?.urgensi.equals("SEGERA_KE_DOKTER", ignoreCase = true)
+
+        if (matchedRedFlags.isNotEmpty() || highUrgencyScan) {
+            val parts = mutableListOf<String>()
+            if (matchedRedFlags.isNotEmpty()) {
+                val preview = matchedRedFlags.take(3).joinToString(", ")
+                parts.add("gejala berisiko tinggi ($preview)")
+            }
+            if (highUrgencyScan && latestDetection != null) {
+                val nama = latestDetection.kelas.replace("_", " ")
+                parts.add("hasil scan $nama berurgensi tinggi")
+            }
+            val summary = "Terdeteksi ${parts.joinToString(" serta ")}. Segera hubungi dokter gigi atau kunjungi klinik gigi terdekat."
+            return SeverityAssessment(
+                severity = CaseSeverity.SEVERE_URGENT,
+                matchedIndicators = matchedRedFlags,
+                reasonSummary = summary
+            )
+        }
+
+        if (isSensitiveMedicalQuery(userQuestion)) {
+            return SeverityAssessment(
+                severity = CaseSeverity.MODERATE_SENSITIVE,
+                matchedIndicators = emptyList(),
+                reasonSummary = null
+            )
+        }
+
+        return SeverityAssessment(CaseSeverity.NORMAL)
+    }
+
+    fun isUrgentReplyContent(aiReply: String): Boolean {
+        val normalized = aiReply.trim().lowercase(Locale.ROOT)
+        if (normalized.isEmpty()) return false
+        return URGENT_REPLY_PHRASES.any { normalized.contains(it) }
+    }
+
     fun build(
         latestDetection: DetectionHistoryEntity?,
         userQuestion: String,
@@ -98,7 +173,8 @@ object ContextualPromptBuilder {
         val sanitized = userQuestion.trim().take(1000)
         val wrappedUserMessage = "<pesan_pasien>\n$sanitized\n</pesan_pasien>"
         val responseStyle = classifyResponseStyle(sanitized)
-        val isSensitive = isSensitiveMedicalQuery(sanitized) || latestDetection?.urgensi == "SEGERA_KE_DOKTER"
+        val severityAssessment = assessCaseSeverity(sanitized, latestDetection)
+        val isSensitive = severityAssessment.severity != CaseSeverity.NORMAL
 
         val sb = StringBuilder()
 
@@ -137,12 +213,12 @@ object ContextualPromptBuilder {
         sb.appendLine("- Format rapi: boleh menggunakan **tebal** untuk penekanan kata kunci dan poin bernomor/strip (aplikasi merender teks tebal & bullet secara bersih). Hindari blok kode atau heading rumit.")
         sb.appendLine("- Emoji secukupnya: boleh pakai 1-2 emoji hanya pada momen tertentu yang pas (misalnya sapaan hangat atau penutup ramah). Jangan memakai emoji di setiap poin atau setiap kalimat, dan hindari emoji pada kasus medis serius.")
 
-        // 4. Clinical Context Injection
+        // 4. Clinical Context Injection (Referensi Hasil Scan Mulut)
         if (latestDetection != null) {
             val namaPenyakit = latestDetection.kelas.replace("_", " ")
             val confidencePercent = String.format(Locale.US, "%.1f%%", latestDetection.confidence * 100f)
 
-            sb.appendLine("KONTEKS DETEKSI PENGGUNA:")
+            sb.appendLine("KONTEKS DETEKSI PENGGUNA (REFERENSI HASIL SCAN MULUT):")
             sb.appendLine("- Dugaan Kondisi: $namaPenyakit")
             sb.appendLine("- Tingkat Keyakinan AI: $confidencePercent")
             sb.appendLine("- Tingkat Urgensi: ${latestDetection.urgensi}")
@@ -159,6 +235,7 @@ object ContextualPromptBuilder {
             if (latestDetection.urgensi == "SEGERA_KE_DOKTER") {
                 sb.appendLine("PRIORITAS: Kondisi ini memerlukan pemeriksaan dokter gigi atau klinik terdekat segera.")
             }
+            sb.appendLine("- Gunakan informasi hasil scan di atas secara alami sebagai referensi jawaban saat relevan dengan pertanyaan pasien.")
         } else {
             sb.appendLine("KONTEKS PENGGUNA:")
             sb.appendLine("- Belum ada riwayat deteksi foto mulut (mode konsultasi kesehatan mulut umum).")
@@ -169,10 +246,17 @@ object ContextualPromptBuilder {
             sb.appendLine("- Jika relevan dengan keluhan visual di mulut, boleh sebutkan fitur 'Cek Mulut' secara singkat.")
         }
 
-        // 5. Sensitive Medical Query Adaptation
-        if (isSensitive) {
+        // 5. Adaptive Severe Case & Sensitive Medical Query Adaptation
+        if (severityAssessment.severity == CaseSeverity.SEVERE_URGENT) {
+            sb.appendLine("DETEKSI KASUS BERAT & PERTANYAAN MEDIS SENSITIF (PRIORITAS TINGGI):")
+            sb.appendLine("- Kasus ini terdeteksi memiliki indikasi berat atau berisiko tinggi (${severityAssessment.reasonSummary}).")
+            sb.appendLine("- Sampaikan dengan tenang, tegas, dan empatik bahwa kondisi ini termasuk KASUS BERAT yang membutuhkan pemeriksaan langsung dokter gigi segera. Hindari emoji.")
+            sb.appendLine("- JANGAN meresepkan obat keras/antibiotik, JANGAN menentukan dosis obat, dan JANGAN menyarankan tindakan invasif mandiri.")
+            sb.appendLine("- Berikan hanya langkah pertolongan awal yang aman sementara menunggu dokter, lalu sarankan secara eksplisit agar pengguna segera menggunakan tombol 'Hubungi Dokter' (WhatsApp dokter gigi) atau 'Klinik Terdekat' di aplikasi ini.")
+            sb.appendLine("- Tegaskan bahwa chatbot ini hanya pengetahuan awal dan referensi awal ($DISCLAIMER_KEYWORD klinis).")
+        } else if (isSensitive) {
             sb.appendLine("ADAPTASI PERTANYAAN MEDIS SENSITIF (WAJIB):")
-            sb.appendLine("- Pertanyaan menyentuh gejala berat/darurat, kelompok rentan, permintaan obat/resep, atau tindakan berisiko.")
+            sb.appendLine("- Pertanyaan menyentuh kelompok rentan, permintaan obat/resep, atau tindakan berisiko.")
             sb.appendLine("- JANGAN meresepkan obat keras/antibiotik, JANGAN menentukan dosis obat, dan JANGAN menyarankan tindakan invasif mandiri.")
             sb.appendLine("- Sampaikan secara jelas dan empatik bahwa chatbot ini hanya sebagai pengetahuan awal dan referensi awal ($DISCLAIMER_KEYWORD klinis), sehingga pemeriksaan langsung dan saran penanganan lebih lanjut harus dari dokter gigi atau tenaga medis ahli.")
         }
@@ -185,7 +269,8 @@ object ContextualPromptBuilder {
 
         return ContextualPromptPayload(
             systemInstruction = sb.toString(),
-            wrappedUserMessage = wrappedUserMessage
+            wrappedUserMessage = wrappedUserMessage,
+            severityAssessment = severityAssessment
         )
     }
 }

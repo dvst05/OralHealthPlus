@@ -66,7 +66,7 @@ private val TextMuted = Color(0xFF475569)
 fun LoginScreen(
     uiState: AuthUiState,
     onLogin: (username: String, password: String) -> Unit,
-    onGoogleLocalSignIn: (email: String, displayName: String) -> Unit,
+    onGoogleSignInClick: () -> Unit,
     onNavigateToRegister: () -> Unit,
     onClearMessages: () -> Unit,
     modifier: Modifier = Modifier
@@ -74,9 +74,6 @@ fun LoginScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
-    var showGoogleDialog by remember { mutableStateOf(false) }
-    var googleEmail by remember { mutableStateOf("yusuf.oralhealth@gmail.com") }
-    var googleName by remember { mutableStateOf("Achmad Yusuf") }
 
     Column(
         modifier = modifier
@@ -133,7 +130,8 @@ fun LoginScreen(
                         username = it
                         if (uiState.errorMessage != null) onClearMessages()
                     },
-                    label = { Text("Username") },
+                    label = { Text("Username atau Email") },
+                    placeholder = { Text("username atau nama@gmail.com") },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = PrimaryBlue) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -219,7 +217,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 OutlinedButton(
-                    onClick = { showGoogleDialog = true },
+                    onClick = onGoogleSignInClick,
                     enabled = !uiState.isLoading,
                     border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                     shape = RoundedCornerShape(12.dp),
@@ -248,74 +246,5 @@ fun LoginScreen(
                 fontWeight = FontWeight.Medium
             )
         }
-    }
-
-    if (showGoogleDialog) {
-        AlertDialog(
-            onDismissRequest = { showGoogleDialog = false },
-            title = { Text("Pilih Akun Google", fontWeight = FontWeight.SemiBold) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        text = "Pilih akun cepat atau masukkan email Google Anda untuk masuk.",
-                        fontSize = 13.sp,
-                        color = TextMuted
-                    )
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                showGoogleDialog = false
-                                onGoogleLocalSignIn("yusuf.oralhealth@gmail.com", "Achmad Yusuf")
-                            },
-                        colors = CardDefaults.cardColors(containerColor = BackgroundLight),
-                        border = BorderStroke(1.dp, BorderHairline),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Filled.AccountCircle, contentDescription = null, tint = PrimaryBlue)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text("Achmad Yusuf", fontWeight = FontWeight.Medium, fontSize = 14.sp, color = TextPrimary)
-                                Text("yusuf.oralhealth@gmail.com", fontSize = 12.sp, color = TextMuted)
-                            }
-                        }
-                    }
-                    OutlinedTextField(
-                        value = googleEmail,
-                        onValueChange = { googleEmail = it },
-                        label = { Text("Email Google") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    OutlinedTextField(
-                        value = googleName,
-                        onValueChange = { googleName = it },
-                        label = { Text("Nama Tampilan") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showGoogleDialog = false
-                        onGoogleLocalSignIn(googleEmail, googleName)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-                ) {
-                    Text("Lanjutkan")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGoogleDialog = false }) {
-                    Text("Batal", color = TextMuted)
-                }
-            }
-        )
     }
 }

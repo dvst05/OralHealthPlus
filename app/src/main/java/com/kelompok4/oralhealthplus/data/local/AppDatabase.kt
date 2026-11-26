@@ -6,6 +6,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kelompok4.oralhealthplus.data.local.dao.ChatMessageDao
 import com.kelompok4.oralhealthplus.data.local.dao.DetectionHistoryDao
 import com.kelompok4.oralhealthplus.data.local.dao.UserDao
@@ -13,7 +15,7 @@ import com.kelompok4.oralhealthplus.data.local.entity.ChatMessageEntity
 import com.kelompok4.oralhealthplus.data.local.entity.DetectionHistoryEntity
 import com.kelompok4.oralhealthplus.data.local.entity.UserEntity
 
-@Database(entities = [UserEntity::class, DetectionHistoryEntity::class, ChatMessageEntity::class], version = 1, exportSchema = false)
+@Database(entities = [UserEntity::class, DetectionHistoryEntity::class, ChatMessageEntity::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
   abstract fun userDao(): UserDao
   abstract fun detectionHistoryDao(): DetectionHistoryDao
@@ -22,13 +24,22 @@ abstract class AppDatabase : RoomDatabase() {
   companion object {
     @Volatile private var INSTANCE: AppDatabase? = null
 
+    private val MIGRATION_1_2 = object : Migration(1, 2) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE users ADD COLUMN whatsappNumber TEXT NOT NULL DEFAULT ''")
+        db.execSQL("ALTER TABLE users ADD COLUMN profilePhotoPath TEXT NOT NULL DEFAULT ''")
+      }
+    }
+
     fun getInstance(context: Context): AppDatabase {
       return INSTANCE ?: synchronized(this) {
         val instance = Room.databaseBuilder(
           context.applicationContext,
           AppDatabase::class.java,
           "oralhealth_app.db"
-        ).fallbackToDestructiveMigration(dropAllTables = true).build()
+        ).addMigrations(MIGRATION_1_2)
+          .fallbackToDestructiveMigration(dropAllTables = true)
+          .build()
         INSTANCE = instance
         instance
       }
