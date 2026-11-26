@@ -64,6 +64,10 @@ import com.kelompok4.oralhealthplus.feature.detection.DetectionViewModel
 import com.kelompok4.oralhealthplus.feature.detection.keModelBersama
 import com.kelompok4.oralhealthplus.feature.education.EducationRoute
 import com.kelompok4.oralhealthplus.feature.education.EducationViewModel
+import com.kelompok4.oralhealthplus.feature.encyclopedia.EncyclopediaDetailScreen
+import com.kelompok4.oralhealthplus.feature.encyclopedia.EncyclopediaEntry
+import com.kelompok4.oralhealthplus.feature.encyclopedia.EncyclopediaListScreen
+import com.kelompok4.oralhealthplus.feature.encyclopedia.EncyclopediaRepository
 import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
 import com.kelompok4.oralhealthplus.feature.home.HomeScreen
 import com.kelompok4.oralhealthplus.feature.onboarding.OnboardingPrefs
@@ -85,6 +89,7 @@ enum class AppTab {
 sealed interface LayarPenuh {
     data object Onboarding : LayarPenuh
     data class Edukasi(val tabAwal: Int) : LayarPenuh // 0 = Artikel, 1 = Video
+    data object Ensiklopedia : LayarPenuh
 }
 
 private val NavPrimaryBlue = Color(0xFF4A628A)
@@ -146,6 +151,7 @@ fun MainAppHost() {
 
     val loggedInUsername by sessionManager.loggedInUsernameFlow.collectAsState()
     val displayName by sessionManager.displayNameFlow.collectAsState()
+    val profilePhotoPath by sessionManager.profilePhotoPathFlow.collectAsState()
     val guestScanCount by sessionManager.guestScanCountFlow.collectAsState()
     val guestAnalysisCount by sessionManager.guestAnalysisCountFlow.collectAsState()
     val guestChatCount by sessionManager.guestChatCountFlow.collectAsState()
@@ -229,6 +235,32 @@ fun MainAppHost() {
                         onBack = { layarPenuh = null },
                         onCekMulut = { openScanFlow() },
                     )
+                }
+            }
+            LayarPenuh.Ensiklopedia -> {
+                val daftarPenyakit = remember { EncyclopediaRepository.dariAssets(context).semua() }
+                var selectedEntry by remember { mutableStateOf<EncyclopediaEntry?>(null) }
+                BackHandler {
+                    if (selectedEntry != null) {
+                        selectedEntry = null
+                    } else {
+                        layarPenuh = null
+                    }
+                }
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
+                    val activeEntry = selectedEntry
+                    if (activeEntry != null) {
+                        EncyclopediaDetailScreen(
+                            entri = activeEntry,
+                            onBack = { selectedEntry = null }
+                        )
+                    } else {
+                        EncyclopediaListScreen(
+                            daftar = daftarPenyakit,
+                            onPilih = { selectedEntry = it },
+                            onBack = { layarPenuh = null }
+                        )
+                    }
                 }
             }
             null -> if (diDeteksi) {
@@ -328,7 +360,9 @@ fun MainAppHost() {
                                     onChatbot = { currentTab = AppTab.CHATBOT },
                                     onPengaturan = { currentTab = AppTab.ACCOUNT },
                                     onToothpaste = null, // kartu pasta gigi disembunyikan sampai kelompok memutuskan
-                                    onDoctors = { openDoctorsSection() }
+                                    onDoctors = { openDoctorsSection() },
+                                    onEncyclopedia = { layarPenuh = LayarPenuh.Ensiklopedia },
+                                    profilePhotoPath = profilePhotoPath
                                 )
                             }
                             AppTab.CHATBOT -> {
@@ -365,7 +399,8 @@ fun MainAppHost() {
                                 AccountRoute(
                                     vm = authViewModel,
                                     onOpenChatbot = { currentTab = AppTab.CHATBOT },
-                                    onOpenHistory = { currentTab = AppTab.HISTORY }
+                                    onOpenHistory = { currentTab = AppTab.HISTORY },
+                                    onOpenOnboarding = { layarPenuh = LayarPenuh.Onboarding }
                                 )
                             }
                         }

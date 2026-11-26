@@ -20,16 +20,25 @@ import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
 fun AccountRoute(
     vm: AuthViewModel,
     onOpenChatbot: () -> Unit,
-    onOpenHistory: () -> Unit
+    onOpenHistory: () -> Unit,
+    onOpenOnboarding: (() -> Unit)? = null
 ) {
     val uiState by vm.uiState.collectAsState()
     var showRegister by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val activeSession = uiState.activeSession
     if (activeSession != null) {
         AccountProfileScreen(
             session = activeSession,
             infoMessage = uiState.infoMessage,
+            errorMessage = uiState.errorMessage,
+            isLoading = uiState.isLoading,
+            onUpdateProfile = vm::updateProfile,
+            onPickProfilePhoto = { uri -> vm.updateProfilePhoto(context, uri) },
+            onRemoveProfilePhoto = vm::removeProfilePhoto,
+            onChangePassword = vm::changePassword,
+            onOpenOnboarding = onOpenOnboarding,
             onOpenChatbot = onOpenChatbot,
             onOpenHistory = onOpenHistory,
             onLogout = {
@@ -55,7 +64,6 @@ fun AccountRoute(
             onClearMessages = vm::clearMessages
         )
     } else {
-        val context = androidx.compose.ui.platform.LocalContext.current
         LoginScreen(
             uiState = uiState,
             onLogin = vm::login,

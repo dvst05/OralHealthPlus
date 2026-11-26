@@ -17,6 +17,9 @@ class SessionManager(context: Context) {
     private val _displayNameFlow = MutableStateFlow(sharedPreferences.getString("displayName", "") ?: "")
     val displayNameFlow: StateFlow<String> = _displayNameFlow.asStateFlow()
 
+    private val _profilePhotoPathFlow = MutableStateFlow(sharedPreferences.getString("profilePhotoPath", "") ?: "")
+    val profilePhotoPathFlow: StateFlow<String> = _profilePhotoPathFlow.asStateFlow()
+
     private val _guestScanCountFlow = MutableStateFlow(sharedPreferences.getInt(KEY_GUEST_SCAN_COUNT, 0))
     val guestScanCountFlow: StateFlow<Int> = _guestScanCountFlow.asStateFlow()
 
@@ -26,15 +29,26 @@ class SessionManager(context: Context) {
     private val _guestChatCountFlow = MutableStateFlow(sharedPreferences.getInt(KEY_GUEST_CHAT_COUNT, 0))
     val guestChatCountFlow: StateFlow<Int> = _guestChatCountFlow.asStateFlow()
 
-    fun saveSession(username: String, displayName: String, authProvider: String = "LOCAL") {
+    fun saveSession(
+        username: String,
+        displayName: String,
+        authProvider: String = "LOCAL",
+        email: String = "",
+        whatsappNumber: String = "",
+        profilePhotoPath: String = ""
+    ) {
         with(sharedPreferences.edit()) {
             putString("username", username)
             putString("displayName", displayName)
             putString("authProvider", authProvider)
+            putString("email", email)
+            putString("whatsappNumber", whatsappNumber)
+            putString("profilePhotoPath", profilePhotoPath)
             apply()
         }
         _loggedInUsernameFlow.value = username
         _displayNameFlow.value = displayName
+        _profilePhotoPathFlow.value = profilePhotoPath
     }
 
     fun isLoggedIn(): Boolean {
@@ -53,15 +67,31 @@ class SessionManager(context: Context) {
         return sharedPreferences.getString("authProvider", "LOCAL") ?: "LOCAL"
     }
 
+    fun getEmail(): String {
+        return sharedPreferences.getString("email", "") ?: ""
+    }
+
+    fun getWhatsappNumber(): String {
+        return sharedPreferences.getString("whatsappNumber", "") ?: ""
+    }
+
+    fun getProfilePhotoPath(): String {
+        return sharedPreferences.getString("profilePhotoPath", "") ?: ""
+    }
+
     fun clearSession() {
         with(sharedPreferences.edit()) {
             remove("username")
             remove("displayName")
             remove("authProvider")
+            remove("email")
+            remove("whatsappNumber")
+            remove("profilePhotoPath")
             apply()
         }
         _loggedInUsernameFlow.value = null
         _displayNameFlow.value = ""
+        _profilePhotoPathFlow.value = ""
     }
 
     // --- Guest Quota Persistence (1x Scan, 1x Analysis, 3x Chatbot Questions) ---

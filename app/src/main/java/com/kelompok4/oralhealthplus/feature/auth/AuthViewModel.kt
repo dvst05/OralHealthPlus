@@ -2,6 +2,8 @@
 
 package com.kelompok4.oralhealthplus.feature.auth
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -25,6 +27,17 @@ data class AuthUiState(
 class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(AuthUiState(activeSession = repository.getActiveSession()))
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
+
+    init {
+        if (_uiState.value.activeSession != null) {
+            viewModelScope.launch {
+                val refreshed = repository.refreshActiveSession()
+                if (refreshed != null) {
+                    _uiState.update { it.copy(activeSession = refreshed) }
+                }
+            }
+        }
+    }
 
     fun requestVerificationCode(email: String) {
         viewModelScope.launch {
@@ -138,6 +151,134 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
             }.onFailure { err ->
                 _uiState.update { it.copy(isLoading = false, errorMessage = err.message ?: "Sign-in Google gagal") }
             }
+        }
+    }
+
+    fun updateProfile(
+        displayName: String,
+        email: String,
+        whatsappNumber: String
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.updateProfile(displayName, email, whatsappNumber)
+                .onSuccess { session ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSession = session,
+                            infoMessage = "Profil berhasil diperbarui"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal memperbarui profil"
+                        )
+                    }
+                }
+        }
+    }
+
+    fun updateProfilePhoto(context: Context, uri: Uri) {
+        val current = _uiState.value.activeSession ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            ProfilePhotoStorage.saveProfilePhoto(
+                context = context,
+                username = current.username,
+                sourceUri = uri,
+                previousPath = current.profilePhotoPath
+            ).onSuccess { savedPath ->
+                repository.updateProfile(
+                    displayNameRaw = current.displayName,
+                    emailRaw = current.email,
+                    whatsappRaw = current.whatsappNumber,
+                    profilePhotoPath = savedPath
+                ).onSuccess { session ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            activeSession = session,
+                            infoMessage = "Foto profil berhasil diperbarui"
+                        )
+                    }
+                }.onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal menyimpan foto profil"
+                        )
+                    }
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = err.message ?: "Gagal memproses foto profil"
+                    )
+                }
+            }
+        }
+    }
+
+    fun removeProfilePhoto() {
+        val current = _uiState.value.activeSession ?: return
+        if (current.profilePhotoPath.isBlank()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            val oldPath = current.profilePhotoPath
+            repository.updateProfile(
+                displayNameRaw = current.displayName,
+                emailRaw = current.email,
+                whatsappRaw = current.whatsappNumber,
+                profilePhotoPath = ""
+            ).onSuccess { session ->
+                ProfilePhotoStorage.deleteProfilePhotoFile(oldPath)
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        activeSession = session,
+                        infoMessage = "Foto profil dihapus"
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = err.message ?: "Gagal menghapus foto profil"
+                    )
+                }
+            }
+        }
+    }
+
+    fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        confirmNewPassword: String
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, infoMessage = null) }
+            repository.changePassword(currentPassword, newPassword, confirmNewPassword)
+                .onSuccess {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            infoMessage = "Password berhasil diubah"
+                        )
+                    }
+                }
+                .onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = err.message ?: "Gagal mengubah password"
+                        )
+                    }
+                }
         }
     }
 

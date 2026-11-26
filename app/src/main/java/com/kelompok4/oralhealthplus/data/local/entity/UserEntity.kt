@@ -9,6 +9,8 @@ data class UserEntity(
     @PrimaryKey val username: String,
     val displayName: String,
     val email: String = "",
+    val whatsappNumber: String = "",
+    val profilePhotoPath: String = "",
     val passwordHash: String,
     val authProvider: String = "LOCAL",
     val createdAt: Long = System.currentTimeMillis()

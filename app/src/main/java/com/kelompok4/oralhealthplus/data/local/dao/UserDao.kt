@@ -25,6 +25,18 @@ interface UserDao {
     @Query("SELECT * FROM users ORDER BY createdAt DESC LIMIT 1")
     suspend fun getLatestUser(): UserEntity?
 
+    @Query("UPDATE users SET displayName = :displayName, email = :email, whatsappNumber = :whatsappNumber, profilePhotoPath = :profilePhotoPath WHERE LOWER(username) = LOWER(:username)")
+    suspend fun updateUserProfile(
+        username: String,
+        displayName: String,
+        email: String,
+        whatsappNumber: String,
+        profilePhotoPath: String
+    ): Int
+
+    @Query("UPDATE users SET passwordHash = :passwordHash WHERE LOWER(username) = LOWER(:username)")
+    suspend fun updatePasswordHash(username: String, passwordHash: String): Int
+
     @Query("DELETE FROM users WHERE LOWER(username) = LOWER(:username)")
     suspend fun deleteUserByUsername(username: String): Int
 }
