@@ -81,7 +81,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.lottie.compose)
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
+    // Model diekspor dengan TF 2.21 (butuh runtime >= 2.17). Package Kotlin tetap org.tensorflow.lite.
+    implementation(libs.litert)
     implementation(libs.play.services.location)
     implementation(libs.osmdroid.android)
     testImplementation(libs.junit)

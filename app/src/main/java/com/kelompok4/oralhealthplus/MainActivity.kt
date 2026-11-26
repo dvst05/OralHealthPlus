@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -50,7 +51,11 @@ import com.kelompok4.oralhealthplus.feature.chatbot.AccountRoute
 import com.kelompok4.oralhealthplus.feature.chatbot.ChatbotRoute
 import com.kelompok4.oralhealthplus.feature.chatbot.ChatbotViewModel
 import com.kelompok4.oralhealthplus.feature.chatbot.HistoryReportRoute
+import com.kelompok4.oralhealthplus.feature.detection.DetectionRoute
+import com.kelompok4.oralhealthplus.feature.detection.DetectionViewModel
+import com.kelompok4.oralhealthplus.feature.detection.keModelBersama
 import com.kelompok4.oralhealthplus.feature.education.EducationRoute
+import com.kelompok4.oralhealthplus.feature.education.EducationViewModel
 import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
 import com.kelompok4.oralhealthplus.feature.home.HomeScreen
 import com.kelompok4.oralhealthplus.feature.onboarding.OnboardingPrefs
@@ -113,6 +118,9 @@ fun MainAppHost() {
     )
 
     val clinicViewModel: ClinicViewModel = viewModel()
+    val detectionViewModel: DetectionViewModel = viewModel(
+        factory = DetectionViewModel.Factory(context) { historyRepo.simpanHasil(it.keModelBersama()) }
+    )
 
     LaunchedEffect(Unit) {
         val fineGranted = ContextCompat.checkSelfPermission(
@@ -127,7 +135,9 @@ fun MainAppHost() {
         }
     }
 
-    var currentTab by remember { mutableStateOf(AppTab.HOME) }
+    // rememberSaveable: posisi tidak hilang saat layar diputar atau sepulang dari kamera
+    var currentTab by rememberSaveable { mutableStateOf(AppTab.HOME) }
+    var diDeteksi by rememberSaveable { mutableStateOf(false) } // Fungsi 1, layar penuh
 
     // Onboarding hanya muncul saat aplikasi pertama kali dibuka
     var layarPenuh by remember {
@@ -150,18 +160,38 @@ fun MainAppHost() {
             return
         }
         is LayarPenuh.Edukasi -> {
+            val ambilLabel: suspend () -> String? = { historyRepo.getLatestDetection()?.kelas }
+            // Instance yang sama dengan milik EducationRoute; muat ulang agar hasil deteksi terbaru terpakai
+            val educationViewModel: EducationViewModel =
+                viewModel(factory = EducationViewModel.factory(context, ambilLabel))
+            LaunchedEffect(Unit) { educationViewModel.muat() }
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
                 EducationRoute(
-                    ambilLabelTerakhir = { historyRepo.getLatestDetection()?.kelas },
+                    ambilLabelTerakhir = ambilLabel,
                     tabAwal = layar.tabAwal,
                     onBack = { layarPenuh = null },
-                    // TODO: arahkan ke layar Deteksi setelah DetectionRoute (Anggota 2) disambungkan
-                    onCekMulut = { layarPenuh = null; currentTab = AppTab.HOME },
+                    onCekMulut = { layarPenuh = null; diDeteksi = true },
                 )
             }
             return
         }
         null -> Unit
+    }
+
+    if (diDeteksi) {
+        // Dipasang sebelum DetectionRoute: back dari layar hasil ditangani rute itu lebih dulu
+        BackHandler { diDeteksi = false }
+        Box(Modifier.fillMaxSize().background(Color.White)) {
+            DetectionRoute(
+                vm = detectionViewModel,
+                onBack = { diDeteksi = false },
+                onLihatEdukasi = { layarPenuh = LayarPenuh.Edukasi(tabAwal = 0) },
+                onTanyaChatbot = { diDeteksi = false; currentTab = AppTab.CHATBOT },
+                onCariKlinik = { diDeteksi = false; currentTab = AppTab.CLINIC },
+                onSelesai = { diDeteksi = false; currentTab = AppTab.HOME }
+            )
+        }
+        return
     }
 
     // ---------- Tab dengan bottom bar ----------
@@ -227,8 +257,7 @@ fun MainAppHost() {
                 AppTab.HOME -> {
                     HomeScreen(
                         namaPengguna = sessionManager.getDisplayName(),
-                        // TODO: arahkan ke layar Deteksi setelah DetectionRoute (Anggota 2) disambungkan
-                        onScan = { },
+                        onScan = { diDeteksi = true },
                         onClinic = { currentTab = AppTab.CLINIC },
                         onVideos = { layarPenuh = LayarPenuh.Edukasi(tabAwal = 1) },
                         onArticles = { layarPenuh = LayarPenuh.Edukasi(tabAwal = 0) },
