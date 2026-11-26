@@ -135,6 +135,10 @@ fun HistoryReportRoute(
 @Composable
 fun ChatbotRoute(
     vm: ChatbotViewModel,
+    onOpenLogin: () -> Unit = {},
+    onOpenScan: () -> Unit = {},
+    onOpenDoctors: () -> Unit = {},
+    onOpenClinics: () -> Unit = {},
     onBack: (() -> Unit)? = null
 ) {
     val messages by vm.messages.collectAsState()
@@ -148,6 +152,12 @@ fun ChatbotRoute(
         onClearChat = vm::clearChatHistory,
         onClearError = vm::clearError,
         onClearSecurityWarning = vm::clearSecurityWarning,
+        onDismissSevereAlert = vm::dismissSevereCaseAlert,
+        onResetDetectionReference = vm::useLatestDetectionReference,
+        onOpenLogin = onOpenLogin,
+        onOpenScan = onOpenScan,
+        onOpenDoctors = onOpenDoctors,
+        onOpenClinics = onOpenClinics,
         onBack = onBack
     )
 }

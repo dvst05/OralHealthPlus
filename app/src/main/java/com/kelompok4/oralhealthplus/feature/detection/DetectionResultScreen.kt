@@ -105,6 +105,7 @@ fun DetectionResultScreen(
     onItemClick: (EduItem) -> Unit,
     onTanyaChatbot: () -> Unit,
     onCariKlinik: () -> Unit,
+    onHubungiDokter: () -> Unit = {},
     riwayatTersimpan: Boolean = true
 ) {
     val urgensi = (hasil.urgensi ?: Urgensi.KONTROL_RUTIN)
@@ -147,9 +148,18 @@ fun DetectionResultScreen(
                     fontSize = 11.sp, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 )
             }
-            if (urgensi == Urgensi.SEGERA_KE_DOKTER) {   // <<extend>> use case: klinik terdekat
+            if (urgensi == Urgensi.SEGERA_KE_DOKTER) {   // <<extend>> use case: klinik terdekat & WhatsApp dokter
                 Card(
-                    Modifier.fillMaxWidth().padding(top = 14.dp).clickable(onClick = onCariKlinik),
+                    Modifier.fillMaxWidth().padding(top = 14.dp).clickable(onClick = onHubungiDokter),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)), shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(
+                        "Hubungi Dokter Gigi via WhatsApp", color = Color(0xFF1E6B34), fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold, modifier = Modifier.padding(16.dp)
+                    )
+                }
+                Card(
+                    Modifier.fillMaxWidth().padding(top = 10.dp).clickable(onClick = onCariKlinik),
                     colors = CardDefaults.cardColors(containerColor = ui.bg), shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(
