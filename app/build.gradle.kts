@@ -50,6 +50,9 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+    androidResources {
+        noCompress += "tflite"
+    }
 }
 
 dependencies {
@@ -67,6 +70,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.okhttp)
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
