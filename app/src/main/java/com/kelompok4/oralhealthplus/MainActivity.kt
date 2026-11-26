@@ -2,6 +2,8 @@ package com.kelompok4.oralhealthplus
 
 import android.graphics.Color as AndroidColor
 import android.os.Bundle
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -32,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.content.ContextCompat
 import com.kelompok4.oralhealthplus.data.local.AppDatabase
 import com.kelompok4.oralhealthplus.data.local.SessionManager
 import com.kelompok4.oralhealthplus.data.repository.AuthRepository
@@ -44,6 +48,7 @@ import com.kelompok4.oralhealthplus.feature.chatbot.HistoryReportRoute
 import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
 import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicRoute
+import com.kelompok4.oralhealthplus.feature.clinic.ClinicViewModel
 
 enum class AppTab {
     CHATBOT,
@@ -89,6 +94,21 @@ fun MainAppHost() {
             sessionManager = sessionManager
         )
     )
+
+    val clinicViewModel: ClinicViewModel = viewModel()
+
+    LaunchedEffect(Unit) {
+        val fineGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (fineGranted || coarseGranted) {
+            clinicViewModel.onPermissionResult(true)
+        }
+    }
 
     var currentTab by remember { mutableStateOf(AppTab.CHATBOT) }
 
@@ -148,7 +168,7 @@ fun MainAppHost() {
                     ChatbotRoute(vm = chatbotViewModel)
                 }
                 AppTab.CLINIC -> {
-                    ClinicRoute()
+                    ClinicRoute(vm = clinicViewModel)
                 }
                 AppTab.HISTORY -> {
                     HistoryReportRoute(

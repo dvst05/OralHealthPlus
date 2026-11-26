@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -78,6 +80,7 @@ private val ClinicBackgroundLight = Color(0xFFF8FAFC)
 private val ClinicBorderHairline = Color(0xFFE2E8F0)
 private val ClinicTextPrimary = Color(0xFF0F172A)
 private val ClinicTextMuted = Color(0xFF475569)
+private val ClinicStarAmber = Color(0xFFD97706)
 
 @Composable
 fun ClinicRoute(
@@ -103,7 +106,9 @@ fun ClinicRoute(
         ) == PackageManager.PERMISSION_GRANTED
 
         if (fineGranted || coarseGranted) {
-            vm.onPermissionResult(true)
+            if (uiState.clinics.isEmpty() && !uiState.isLoading) {
+                vm.onPermissionResult(true)
+            }
         } else {
             permissionLauncher.launch(
                 arrayOf(
@@ -118,7 +123,7 @@ fun ClinicRoute(
         uiState = uiState,
         onRefresh = {
             if (uiState.hasLocationPermission) {
-                vm.loadNearbyClinics()
+                vm.loadNearbyClinics(forceRefresh = true)
             } else {
                 permissionLauncher.launch(
                     arrayOf(
@@ -145,7 +150,7 @@ fun ClinicScreen(
     onOpenMaps: (DentalClinic) -> Unit,
     onCallClinic: (String) -> Unit
 ) {
-    val radiusOptions = listOf(2, 5, 10, 15)
+    val radiusOptions = listOf(5, 10, 15)
 
     Scaffold(
         containerColor = ClinicBackgroundLight,
@@ -154,13 +159,13 @@ fun ClinicScreen(
                 title = {
                     Column {
                         Text(
-                            text = "Klinik Gigi Terdekat",
+                            text = "Rekomendasi Klinik Terdekat",
                             color = ClinicTextPrimary,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "OralHealth+ Pencari Fasilitas Kesehatan",
+                            text = "Urutan berdasarkan jarak, rating & jam operasional",
                             color = ClinicTextMuted,
                             fontSize = 12.sp
                         )
@@ -243,7 +248,7 @@ fun ClinicScreen(
                             CircularProgressIndicator(color = ClinicPrimaryBlue)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "Mencari klinik gigi di sekitar Anda...",
+                                text = "Mencari rekomendasi klinik terbaik...",
                                 color = ClinicTextMuted,
                                 fontSize = 13.sp
                             )
@@ -265,8 +270,9 @@ fun ClinicScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(uiState.clinics, key = { it.id }) { clinic ->
+                        itemsIndexed(uiState.clinics, key = { _, clinic -> clinic.id }) { index, clinic ->
                             DentalClinicCard(
+                                rank = index + 1,
                                 clinic = clinic,
                                 onOpenMaps = { onOpenMaps(clinic) },
                                 onCallClinic = { clinic.phone?.let(onCallClinic) }
@@ -292,7 +298,7 @@ fun ClinicMapView(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(195.dp)
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, ClinicBorderHairline)
@@ -319,11 +325,11 @@ fun ClinicMapView(
                 }
                 mapView.overlays.add(userMarker)
 
-                clinics.forEach { clinic ->
+                clinics.forEachIndexed { idx, clinic ->
                     val marker = Marker(mapView).apply {
                         position = GeoPoint(clinic.latitude, clinic.longitude)
-                        title = "${clinic.name} (${clinic.formattedDistance})"
-                        snippet = clinic.address
+                        title = "#${idx + 1} ${clinic.name}"
+                        snippet = "${clinic.formattedDistance} • Rating ${clinic.formattedRating}"
                         setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                     }
                     mapView.overlays.add(marker)
@@ -366,16 +372,16 @@ private fun GpsStatusBanner(
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (hasPermission) "Lokasi GPS Aktif" else "Izin Lokasi Belum Aktif",
+                    text = if (hasPermission) "Lokasi Pengguna Terdeteksi" else "Izin Lokasi Belum Aktif",
                     color = ClinicTextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
                     text = if (hasPermission) {
-                        "Ditemukan $clinicCount klinik dalam radius $radiusKm km"
+                        "$clinicCount klinik diurutkan berdasarkan skor rekomendasi (radius $radiusKm km)"
                     } else {
-                        "Aktifkan izin GPS untuk mengurutkan klinik dari jarak terdekat"
+                        "Aktifkan izin lokasi untuk menghitung rekomendasi klinik terdekat"
                     },
                     color = ClinicTextMuted,
                     fontSize = 12.sp
@@ -397,58 +403,77 @@ private fun GpsStatusBanner(
 
 @Composable
 private fun DentalClinicCard(
+    rank: Int,
     clinic: DentalClinic,
     onOpenMaps: () -> Unit,
     onCallClinic: () -> Unit
 ) {
+    val hasSchedule = !clinic.openingHours.isNullOrBlank() &&
+            !clinic.openingHours.equals("Jadwal tidak tercantum di peta", ignoreCase = true)
+
+    val statusBg = when {
+        !hasSchedule -> Color(0xFFF1F5F9)
+        clinic.isOpen -> Color(0xFFE8F5E9)
+        else -> Color(0xFFFFEBEE)
+    }
+    val statusFg = when {
+        !hasSchedule -> Color(0xFF475569)
+        clinic.isOpen -> Color(0xFF1E6B34)
+        else -> Color(0xFF9B1C1C)
+    }
+    val statusText = when {
+        !hasSchedule -> "Jadwal Tidak Tercantum"
+        clinic.isOpen -> "Buka"
+        else -> "Tutup"
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, ClinicBorderHairline)
+        border = BorderStroke(
+            width = if (rank == 1) 1.5.dp else 1.dp,
+            color = if (rank == 1) ClinicPrimaryBlue else ClinicBorderHairline
+        )
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            // Baris atas: Badge Peringkat + Skor Rekomendasi & Status Buka/Tutup
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(36.dp)
-                            .background(ClinicPrimaryBlue.copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
+                            .background(ClinicPrimaryBlue, RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.LocalHospital,
-                            contentDescription = null,
-                            tint = ClinicPrimaryBlue,
-                            modifier = Modifier.size(20.dp)
+                        Text(
+                            text = if (rank == 1) "Rekomendasi #1" else "#$rank",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = clinic.name,
-                        color = ClinicTextPrimary,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                    Box(
+                        modifier = Modifier
+                            .background(ClinicPrimaryBlue.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+
                 Box(
                     modifier = Modifier
-                        .background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .background(statusBg, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) {
                     Text(
-                        text = clinic.formattedDistance,
-                        color = Color(0xFF1E6B34),
+                        text = statusText,
+                        color = statusFg,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -457,6 +482,71 @@ private fun DentalClinicCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Gambar Placeholder + Nama Klinik + Rating & Jumlah Ulasan
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(ClinicPrimaryBlue.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.LocalHospital,
+                        contentDescription = "Ikon Klinik",
+                        tint = ClinicPrimaryBlue,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = clinic.name,
+                        color = ClinicTextPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = null,
+                            tint = ClinicStarAmber,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${clinic.formattedRating} (${clinic.reviewCount} ulasan)",
+                            color = ClinicTextPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "  •  ",
+                            color = ClinicTextMuted,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = clinic.formattedDistance,
+                            color = ClinicPrimaryBlue,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Alamat Klinik (tanpa menampilkan koordinat mentah)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.LocationOn,
@@ -485,7 +575,7 @@ private fun DentalClinicCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Jam buka: ${clinic.openingHours}",
+                        text = clinic.openingHours,
                         color = ClinicTextMuted,
                         fontSize = 12.sp
                     )
@@ -494,6 +584,7 @@ private fun DentalClinicCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Tombol Aksi
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -576,7 +667,7 @@ private fun EmptyClinicCard(
                 text = if (hasPermission) {
                     "Coba perbesar pilihan radius pencarian di atas atau tekan muat ulang."
                 } else {
-                    "Izinkan akses lokasi agar OralHealth+ dapat menampilkan daftar dokter gigi terdekat."
+                    "Izinkan akses lokasi agar OralHealth+ dapat merekomendasikan klinik gigi terdekat."
                 },
                 color = ClinicTextMuted,
                 fontSize = 13.sp,
@@ -639,16 +730,30 @@ private fun ClinicErrorBanner(message: String, onDismiss: () -> Unit) {
 }
 
 private fun openGoogleMapsDirection(context: Context, clinic: DentalClinic) {
-    val label = Uri.encode(clinic.name)
-    val geoUri = Uri.parse("geo:${clinic.latitude},${clinic.longitude}?q=${clinic.latitude},${clinic.longitude}($label)")
+    // Gabungkan nama klinik dan alamat (jika valid) agar Google Maps langsung membuka Place Page-nya
+    val cleanAddress = if (
+        clinic.address.isNotBlank() &&
+        !clinic.address.startsWith("Area Layanan") &&
+        !clinic.address.startsWith("Alamat tidak")
+    ) {
+        "${clinic.name}, ${clinic.address}"
+    } else {
+        "${clinic.name}, Malang"
+    }
+
+    val encodedQuery = Uri.encode(cleanAddress)
+    // geo:lat,lon?q=Nama+Klinik -> memfokuskan pencarian di sekitar koordinat klinik sekaligus membuka profil tempatnya
+    val geoUri = Uri.parse("geo:${clinic.latitude},${clinic.longitude}?q=$encodedQuery")
+
     val mapIntent = Intent(Intent.ACTION_VIEW, geoUri).apply {
         setPackage("com.google.android.apps.maps")
     }
+
     if (mapIntent.resolveActivity(context.packageManager) != null) {
         context.startActivity(mapIntent)
     } else {
         val browserUri = Uri.parse(
-            "https://www.google.com/maps/search/?api=1&query=${clinic.latitude},${clinic.longitude}"
+            "https://www.google.com/maps/search/?api=1&query=$encodedQuery"
         )
         context.startActivity(Intent(Intent.ACTION_VIEW, browserUri))
     }
