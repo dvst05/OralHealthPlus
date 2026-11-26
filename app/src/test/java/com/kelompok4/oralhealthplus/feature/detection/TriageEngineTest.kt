@@ -1,17 +1,12 @@
-package com.kelompok4.oralhealthplus
+package com.kelompok4.oralhealthplus.feature.detection
 
-import com.kelompok4.oralhealthplus.feature.detection.TriageEngine
-import com.kelompok4.oralhealthplus.feature.detection.Urgensi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
-/*
- * Taruh di app/src/test/java/com/oralhealth/ml/
- * Gradle: testImplementation("junit:junit:4.13.2")
- * Jika isi tabel di TriageEngine diubah, ubah juga nilai harapan di sini.
- */
+/* Jika isi tabel di TriageEngine diubah, ubah juga nilai harapan di sini. */
 class TriageEngineTest {
 
     private val sedang = 0.70f   // 0.60 <= p < 0.80
@@ -55,4 +50,11 @@ class TriageEngineTest {
     }
 
     @Test fun kelasTidakDikenal_defaultKontrolRutin() = cek("penyakit_baru", tinggi, Urgensi.KONTROL_RUTIN)
+
+    // ---- labels.txt asli (satu-satunya sumber nama penyakit) ----
+    @Test fun semuaLabelModel_punyaBarisTriase() {
+        val label = File("src/main/assets/labels.txt").readLines().map { it.trim() }.filter { it.isNotEmpty() }
+        assertEquals(6, label.size)
+        label.forEach { assertTrue("$it tidak ada di decision table", TriageEngine.dikenal(it)) }
+    }
 }

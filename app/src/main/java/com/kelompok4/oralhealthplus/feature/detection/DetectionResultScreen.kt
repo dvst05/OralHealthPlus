@@ -46,7 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** Satu baris rekomendasi edukasi. Diisi dari Fungsi 4 (Anggota 4); kosong = bagian disembunyikan. */
+/** Satu baris rekomendasi edukasi. Diisi dari Fungsi 4 (Anggota 4); kosong = hanya tombol menuju layar edukasi. */
 data class EduItem(val jenis: Jenis, val judul: String, val url: String? = null) {
     enum class Jenis(val label: String) { ARTIKEL("Article"), VIDEO("Video") }
 }
@@ -104,7 +104,8 @@ fun DetectionResultScreen(
     onSeeAll: () -> Unit,
     onItemClick: (EduItem) -> Unit,
     onTanyaChatbot: () -> Unit,
-    onCariKlinik: () -> Unit
+    onCariKlinik: () -> Unit,
+    riwayatTersimpan: Boolean = true
 ) {
     val urgensi = (hasil.urgensi ?: Urgensi.KONTROL_RUTIN)
     val ui = urgensi.ui()
@@ -140,6 +141,12 @@ fun DetectionResultScreen(
                 color = OralColors.Primary, fontSize = 11.sp, lineHeight = 16.sp,
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
             )
+            if (!riwayatTersimpan) {
+                Text(
+                    "This result couldn't be saved to your history.", color = OralColors.ErrorText,
+                    fontSize = 11.sp, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+            }
             if (urgensi == Urgensi.SEGERA_KE_DOKTER) {   // <<extend>> use case: klinik terdekat
                 Card(
                     Modifier.fillMaxWidth().padding(top = 14.dp).clickable(onClick = onCariKlinik),
@@ -165,6 +172,9 @@ fun DetectionResultScreen(
                     }
                 }
                 rekomendasi.take(2).forEach { EduCard(it) { onItemClick(it) } }
+            } else {
+                // Alur layar: Hasil Deteksi -> Rekomendasi Konten, juga saat kartu pratinjau belum diisi
+                OutlineButton("See Educational Content", onSeeAll, Modifier.fillMaxWidth().padding(top = 18.dp))
             }
             TextButton(onClick = onTanyaChatbot, modifier = Modifier.padding(top = 8.dp)) {
                 Text("Ask the chatbot about this result", color = OralColors.Primary, fontWeight = FontWeight.Bold)

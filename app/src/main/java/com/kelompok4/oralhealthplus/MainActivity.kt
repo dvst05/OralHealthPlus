@@ -6,20 +6,25 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -29,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,16 +51,31 @@ import com.kelompok4.oralhealthplus.feature.chatbot.AccountRoute
 import com.kelompok4.oralhealthplus.feature.chatbot.ChatbotRoute
 import com.kelompok4.oralhealthplus.feature.chatbot.ChatbotViewModel
 import com.kelompok4.oralhealthplus.feature.chatbot.HistoryReportRoute
+import com.kelompok4.oralhealthplus.feature.detection.DetectionRoute
+import com.kelompok4.oralhealthplus.feature.detection.DetectionViewModel
+import com.kelompok4.oralhealthplus.feature.detection.keModelBersama
+import com.kelompok4.oralhealthplus.feature.education.EducationRoute
+import com.kelompok4.oralhealthplus.feature.education.EducationViewModel
 import com.kelompok4.oralhealthplus.feature.history.HistoryViewModel
+import com.kelompok4.oralhealthplus.feature.home.HomeScreen
+import com.kelompok4.oralhealthplus.feature.onboarding.OnboardingPrefs
+import com.kelompok4.oralhealthplus.feature.onboarding.OnboardingScreen
 import com.kelompok4.oralhealthplus.ui.theme.OralHealthPlusTheme
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicRoute
 import com.kelompok4.oralhealthplus.feature.clinic.ClinicViewModel
 
 enum class AppTab {
+    HOME,
     CHATBOT,
     CLINIC,
     HISTORY,
     ACCOUNT
+}
+
+/** Layar penuh tanpa bottom bar (dibuka di atas tab). */
+sealed interface LayarPenuh {
+    data object Onboarding : LayarPenuh
+    data class Edukasi(val tabAwal: Int) : LayarPenuh // 0 = Artikel, 1 = Video
 }
 
 private val NavPrimaryBlue = Color(0xFF4A628A)
@@ -81,6 +102,7 @@ fun MainAppHost() {
     val context = LocalContext.current
     val db = remember { AppDatabase.getInstance(context) }
     val sessionManager = remember { SessionManager(context) }
+    val onboardingPrefs = remember { OnboardingPrefs(context) }
 
     val authRepo = remember { AuthRepository(db.userDao(), sessionManager) }
     val historyRepo = remember { HistoryRepository(db.detectionHistoryDao(), sessionManager) }
@@ -96,6 +118,9 @@ fun MainAppHost() {
     )
 
     val clinicViewModel: ClinicViewModel = viewModel()
+    val detectionViewModel: DetectionViewModel = viewModel(
+        factory = DetectionViewModel.Factory(context) { historyRepo.simpanHasil(it.keModelBersama()) }
+    )
 
     LaunchedEffect(Unit) {
         val fineGranted = ContextCompat.checkSelfPermission(
@@ -110,8 +135,66 @@ fun MainAppHost() {
         }
     }
 
-    var currentTab by remember { mutableStateOf(AppTab.CHATBOT) }
+    // rememberSaveable: posisi tidak hilang saat layar diputar atau sepulang dari kamera
+    var currentTab by rememberSaveable { mutableStateOf(AppTab.HOME) }
+    var diDeteksi by rememberSaveable { mutableStateOf(false) } // Fungsi 1, layar penuh
 
+    // Onboarding hanya muncul saat aplikasi pertama kali dibuka
+    var layarPenuh by remember {
+        mutableStateOf<LayarPenuh?>(if (onboardingPrefs.sudahDilihat) null else LayarPenuh.Onboarding)
+    }
+
+    // Tombol back HP menutup layar penuh (kecuali Onboarding) dan kembali ke tab
+    BackHandler(enabled = layarPenuh is LayarPenuh.Edukasi) { layarPenuh = null }
+
+    // ---------- Layar penuh (tanpa bottom bar) ----------
+    when (val layar = layarPenuh) {
+        LayarPenuh.Onboarding -> {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
+                OnboardingScreen(onSelesai = {
+                    onboardingPrefs.sudahDilihat = true
+                    layarPenuh = null
+                    currentTab = AppTab.HOME
+                })
+            }
+            return
+        }
+        is LayarPenuh.Edukasi -> {
+            val ambilLabel: suspend () -> String? = { historyRepo.getLatestDetection()?.kelas }
+            // Instance yang sama dengan milik EducationRoute; muat ulang agar hasil deteksi terbaru terpakai
+            val educationViewModel: EducationViewModel =
+                viewModel(factory = EducationViewModel.factory(context, ambilLabel))
+            LaunchedEffect(Unit) { educationViewModel.muat() }
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding()) {
+                EducationRoute(
+                    ambilLabelTerakhir = ambilLabel,
+                    tabAwal = layar.tabAwal,
+                    onBack = { layarPenuh = null },
+                    onCekMulut = { layarPenuh = null; diDeteksi = true },
+                )
+            }
+            return
+        }
+        null -> Unit
+    }
+
+    if (diDeteksi) {
+        // Dipasang sebelum DetectionRoute: back dari layar hasil ditangani rute itu lebih dulu
+        BackHandler { diDeteksi = false }
+        Box(Modifier.fillMaxSize().background(Color.White)) {
+            DetectionRoute(
+                vm = detectionViewModel,
+                onBack = { diDeteksi = false },
+                onLihatEdukasi = { layarPenuh = LayarPenuh.Edukasi(tabAwal = 0) },
+                onTanyaChatbot = { diDeteksi = false; currentTab = AppTab.CHATBOT },
+                onCariKlinik = { diDeteksi = false; currentTab = AppTab.CLINIC },
+                onSelesai = { diDeteksi = false; currentTab = AppTab.HOME }
+            )
+        }
+        return
+    }
+
+    // ---------- Tab dengan bottom bar ----------
     val navItemColors = NavigationBarItemDefaults.colors(
         selectedIconColor = NavPrimaryBlue,
         selectedTextColor = NavPrimaryBlue,
@@ -126,6 +209,13 @@ fun MainAppHost() {
             Column {
                 HorizontalDivider(color = NavBorderHairline)
                 NavigationBar(containerColor = Color.White) {
+                    NavigationBarItem(
+                        selected = currentTab == AppTab.HOME,
+                        onClick = { currentTab = AppTab.HOME },
+                        icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+                        label = { Text("Home") },
+                        colors = navItemColors
+                    )
                     NavigationBarItem(
                         selected = currentTab == AppTab.CHATBOT,
                         onClick = { currentTab = AppTab.CHATBOT },
@@ -164,6 +254,19 @@ fun MainAppHost() {
                 .consumeWindowInsets(innerPadding)
         ) {
             when (currentTab) {
+                AppTab.HOME -> {
+                    HomeScreen(
+                        namaPengguna = sessionManager.getDisplayName(),
+                        onScan = { diDeteksi = true },
+                        onClinic = { currentTab = AppTab.CLINIC },
+                        onVideos = { layarPenuh = LayarPenuh.Edukasi(tabAwal = 1) },
+                        onArticles = { layarPenuh = LayarPenuh.Edukasi(tabAwal = 0) },
+                        onReport = { currentTab = AppTab.HISTORY },
+                        onChatbot = { currentTab = AppTab.CHATBOT },
+                        onPengaturan = { currentTab = AppTab.ACCOUNT },
+                        onToothpaste = null, // kartu pasta gigi disembunyikan sampai kelompok memutuskan
+                    )
+                }
                 AppTab.CHATBOT -> {
                     ChatbotRoute(vm = chatbotViewModel)
                 }
@@ -187,4 +290,3 @@ fun MainAppHost() {
         }
     }
 }
-
