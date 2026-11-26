@@ -51,8 +51,9 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    fun loadNearbyClinics() {
+    fun loadNearbyClinics(forceRefresh: Boolean = false) {
         viewModelScope.launch {
+            if (forceRefresh) repository.clearCache()
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             val location = repository.getCurrentLocation()
