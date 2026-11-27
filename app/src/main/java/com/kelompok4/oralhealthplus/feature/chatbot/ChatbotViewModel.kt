@@ -152,6 +152,15 @@ class ChatbotViewModel(
     }
 
     fun refreshSuspensionStatus() {
+        if (!ChatbotSecurityGate.ENABLE_SUSPENSION_BLOCKING) {
+            _uiState.update {
+                it.copy(
+                    isSuspended = false,
+                    suspensionMessage = null
+                )
+            }
+            return
+        }
         val user = currentUsername
         val state = sessionManager.getSecurityGateState(user)
         val now = System.currentTimeMillis()
