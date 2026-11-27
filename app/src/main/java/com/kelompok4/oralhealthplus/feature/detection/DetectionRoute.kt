@@ -21,15 +21,6 @@ import kotlinx.coroutines.launch
 import java.io.File
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * SATU rute NavHost untuk seluruh fungsi 1 (Oral Check -> Analyze -> Result / Rejected).
- * Anggota 3 cukup memasang: composable("deteksi") { DetectionRoute(vm, ...) }.
- *
- * Galeri memakai Photo Picker sistem (tanpa izin storage). Kamera memakai TakePicture +
- * FileProvider supaya fotonya beresolusi penuh (TakePicturePreview hanya memberi thumbnail).
- * Izin CAMERA tidak dibutuhkan; tetapi jika modul lain mendeklarasikannya di manifest,
- * Android mewajibkan izin runtime sebelum membuka kamera, dan rute ini sudah memintanya.
- */
 @Composable
 fun DetectionRoute(
     vm: DetectionViewModel,
@@ -65,11 +56,11 @@ fun DetectionRoute(
                 }
                 .onFailure {
                     if (it is CancellationException) throw it
-                    pesanGalat = "Couldn't open that photo. Try another one."
+                    pesanGalat = "Foto tidak dapat dibuka. Silakan pilih foto lain."
                 }
         }
     }
-    // rememberSaveable: aplikasi bisa dimatikan sistem saat kamera terbuka
+
     var pathFotoKamera by rememberSaveable { mutableStateOf<String?>(null) }
 
     val kamera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { berhasil ->
@@ -88,9 +79,9 @@ fun DetectionRoute(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                pesanGalat = "Couldn't read the camera photo. Please try again."
+                pesanGalat = "Gagal membaca hasil foto kamera. Silakan coba lagi."
             } finally {
-                file.delete()   // foto mulut tidak disimpan di perangkat setelah dibaca
+                file.delete()
             }
         }
     }
@@ -101,15 +92,15 @@ fun DetectionRoute(
             pathFotoKamera = file.absolutePath
             kamera.launch(uriFotoKamera(context, file))
         } catch (e: ActivityNotFoundException) {
-            pesanGalat = "No camera app found. Please use Gallery instead."
+            pesanGalat = "Aplikasi kamera tidak ditemukan. Silakan gunakan Galeri."
         } catch (e: Exception) {
-            pesanGalat = "Couldn't open the camera. Please use Gallery instead."
+            pesanGalat = "Tidak dapat membuka kamera. Silakan gunakan Galeri."
         }
     }
 
     val izinKamera = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { diberi ->
         if (diberi) bukaKamera()
-        else pesanGalat = "Camera permission is needed to take a photo. You can use Gallery instead."
+        else pesanGalat = "Izin kamera diperlukan untuk mengambil foto. Anda juga dapat memilih dari Galeri."
     }
 
     fun ambilFoto() {
@@ -128,10 +119,9 @@ fun DetectionRoute(
         galeri.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
 
-    // Back dari Result/Rejected/Error = ulang dari awal (atau keluar jika kuota tamu habis)
     BackHandler(
         enabled = state is DetectionUiState.Success || state is DetectionUiState.Rejected ||
-            state is DetectionUiState.Error
+                state is DetectionUiState.Error
     ) {
         vm.ulangiFoto()
         if (isGuest && !canAnalyzePhoto) onSelesai()
@@ -194,7 +184,9 @@ fun DetectionRoute(
             }
         )
         is DetectionUiState.Success -> DetectionResultScreen(
-            hasil = s.hasil, foto = foto, rekomendasi = rekomendasi,
+            hasil = s.hasil,
+            foto = foto,
+            rekomendasi = rekomendasi,
             onTryAgain = {
                 if (isGuest && !canAnalyzePhoto) {
                     vm.ulangiFoto()

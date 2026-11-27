@@ -61,7 +61,6 @@ import com.kelompok4.oralhealthplus.feature.chatbot.ChatbotViewModel
 import com.kelompok4.oralhealthplus.feature.chatbot.HistoryReportRoute
 import com.kelompok4.oralhealthplus.feature.detection.DetectionRoute
 import com.kelompok4.oralhealthplus.feature.detection.DetectionViewModel
-import com.kelompok4.oralhealthplus.feature.detection.keModelBersama
 import com.kelompok4.oralhealthplus.feature.education.EducationRoute
 import com.kelompok4.oralhealthplus.feature.education.EducationViewModel
 import com.kelompok4.oralhealthplus.feature.encyclopedia.EncyclopediaDetailScreen
@@ -136,7 +135,7 @@ fun MainAppHost() {
 
     val clinicViewModel: ClinicViewModel = viewModel()
     val detectionViewModel: DetectionViewModel = viewModel(
-        factory = DetectionViewModel.Factory(context) { historyRepo.simpanHasil(it.keModelBersama()) }
+        factory = DetectionViewModel.Factory(context) { historyRepo.simpanHasil(it) }
     )
 
     LaunchedEffect(Unit) {

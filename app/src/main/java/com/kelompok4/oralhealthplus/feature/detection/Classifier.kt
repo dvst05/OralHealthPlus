@@ -13,15 +13,30 @@ import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 import kotlin.math.exp
 
-/*
- * SETUP (app/build.gradle.kts)
- *   dependencies { implementation("com.google.ai.edge.litert:litert:1.4.2") }
- *   Runtime harus >= min_runtime_version model (2.17.0). tensorflow-lite 2.16.1 gagal memuat
- *   model ini ("Didn't find op for builtin opcode 'FULLY_CONNECTED' version '12'").
- *   android { androidResources { noCompress += "tflite" } }   // wajib agar bisa di-mmap
- * Taruh di app/src/main/assets/ :
- *   oralhealth_mobilenetv2.tflite  dan  labels.txt   (keduanya dari Colab)
- */
+data class Prediction(
+    val kelas: String,
+    val confidence: Float,
+    val probabilitas: FloatArray,
+    val waktuInferensiMs: Long
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Prediction) return false
+        return kelas == other.kelas &&
+                confidence == other.confidence &&
+                probabilitas.contentEquals(other.probabilitas) &&
+                waktuInferensiMs == other.waktuInferensiMs
+    }
+
+    override fun hashCode(): Int {
+        var result = kelas.hashCode()
+        result = 31 * result + confidence.hashCode()
+        result = 31 * result + probabilitas.contentHashCode()
+        result = 31 * result + waktuInferensiMs.hashCode()
+        return result
+    }
+}
+
 class Classifier(
     context: Context,
     private val modelFile: String = "oralhealth_mobilenetv2.tflite",

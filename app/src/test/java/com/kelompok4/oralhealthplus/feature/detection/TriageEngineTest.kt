@@ -1,12 +1,12 @@
 package com.kelompok4.oralhealthplus.feature.detection
 
+import com.kelompok4.oralhealthplus.data.model.Urgensi
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
-/* Jika isi tabel di TriageEngine diubah, ubah juga nilai harapan di sini. */
 class TriageEngineTest {
 
     private val sedang = 0.70f   // 0.60 <= p < 0.80

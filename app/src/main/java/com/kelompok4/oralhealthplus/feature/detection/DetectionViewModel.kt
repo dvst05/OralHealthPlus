@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.kelompok4.oralhealthplus.data.model.DetectionResult
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,21 +25,16 @@ sealed interface DetectionUiState {
     data class Error(val pesan: String) : DetectionUiState
 }
 
-/**
- * `simpanRiwayat` disambungkan ke HistoryRepository milik Anggota 2:
- *   DetectionViewModel.Factory(context) { historyRepository.simpanHasil(it.keModelBersama()) }
- * Hanya hasil yang LOLOS (tidak ditolak) yang disimpan, sesuai flowchart fungsi 1.
- */
 class DetectionViewModel(
     private val classifier: Classifier,
     private val simpanRiwayat: suspend (DetectionResult) -> Unit
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<DetectionUiState>(DetectionUiState.Idle)
-    val state: StateFlow<DetectionUiState> = _state.asStateFlow()   // bertahan saat rotate
+    val state: StateFlow<DetectionUiState> = _state.asStateFlow()
 
     private val _foto = MutableStateFlow<Bitmap?>(null)
-    val foto: StateFlow<Bitmap?> = _foto.asStateFlow()              // foto terpilih (kamera/galeri)
+    val foto: StateFlow<Bitmap?> = _foto.asStateFlow()
 
     fun pilihFoto(bitmap: Bitmap) {
         if (_state.value is DetectionUiState.Loading) return
@@ -46,16 +42,14 @@ class DetectionViewModel(
         _state.value = DetectionUiState.Idle
     }
 
-    /** Tombol "Analyze": menganalisis foto yang sudah dipilih. */
     fun analyze() { _foto.value?.let(::analyze) }
 
     fun analyze(bitmap: Bitmap) {
-        if (_state.value is DetectionUiState.Loading) return        // cegah analisis ganda
+        if (_state.value is DetectionUiState.Loading) return
         viewModelScope.launch {
             _state.value = DetectionUiState.Loading
             try {
-                val prediksi = classifier.classify(bitmap)           // Dispatchers.Default
-                // Waktu inferensi dicatat di Logcat untuk tabel uji Bab IV
+                val prediksi = classifier.classify(bitmap)
                 Log.d(TAG, "${prediksi.kelas} ${prediksi.confidence} dalam ${prediksi.waktuInferensiMs} ms")
                 val hasil = TriageEngine.evaluate(prediksi.kelas, prediksi.confidence)
                 if (hasil.ditolak) {
@@ -68,13 +62,12 @@ class DetectionViewModel(
                 throw e
             } catch (e: Exception) {
                 gagal(e)
-            } catch (e: LinkageError) {                             // library native gagal dimuat
+            } catch (e: LinkageError) {
                 gagal(e)
             }
         }
     }
 
-    /** Gagal menyimpan riwayat tidak boleh menghilangkan hasil analisis. */
     private suspend fun cobaSimpan(hasil: DetectionResult): Boolean = try {
         simpanRiwayat(hasil)
         true
@@ -86,11 +79,10 @@ class DetectionViewModel(
     }
 
     private fun gagal(e: Throwable) {
-        Log.e(TAG, "Analisis foto gagal", e)                        // detail teknis cukup di Logcat
-        _state.value = DetectionUiState.Error("We couldn't analyze this photo. Please try again.")
+        Log.e(TAG, "Analisis foto gagal", e)
+        _state.value = DetectionUiState.Error("Foto tidak dapat dianalisis. Silakan coba lagi dengan pencahayaan yang lebih jelas.")
     }
 
-    /** "Try Again" / "Change Photo" / Finish: buang foto dan kembali ke layar Oral Check kosong. */
     fun ulangiFoto() {
         if (_state.value is DetectionUiState.Loading) return
         _foto.value = null
@@ -99,10 +91,6 @@ class DetectionViewModel(
 
     override fun onCleared() { classifier.close() }
 
-    /**
-     * Classifier dibuat di dalam create(), jadi hanya ada satu per ViewModel
-     * (tidak ada interpreter baru yang bocor setiap layar diputar).
-     */
     class Factory(
         context: Context,
         private val simpanRiwayat: suspend (DetectionResult) -> Unit
