@@ -29,6 +29,32 @@ class ChatbotSecurityGateTest {
     }
 
     @Test
+    fun isDomainRelevant_quickPromptsAndScanDiseases_returnsTrue() {
+        val diseaseLabels = listOf(
+            "Gingivitis",
+            "Caries",
+            "Calculus",
+            "Mouth_Ulcer",
+            "Tooth_Discoloration",
+            "Hypodontia"
+        )
+        diseaseLabels.forEach { label ->
+            val namaPenyakit = label.replace("_", " ")
+            assertTrue(
+                "Quick prompt untuk $namaPenyakit harus lolos domain check",
+                ChatbotSecurityGate.isDomainRelevant("Jelaskan hasil scan $namaPenyakit saya & perawatan awalnya")
+            )
+            assertTrue(
+                "Quick prompt produk untuk $namaPenyakit harus lolos domain check",
+                ChatbotSecurityGate.isDomainRelevant("Rekomendasi pasta & sikat gigi untuk $namaPenyakit")
+            )
+        }
+        assertTrue(ChatbotSecurityGate.isDomainRelevant("Kapan saya harus segera periksa ke dokter gigi?"))
+        assertTrue(ChatbotSecurityGate.isDomainRelevant("Rekomendasi sikat dan pasta gigi yang cocok"))
+        assertTrue(ChatbotSecurityGate.isDomainRelevant("Tanda-tanda awal radang gusi dan karies"))
+    }
+
+    @Test
     fun isDomainRelevant_unrelatedTopics_returnsFalse() {
         assertFalse(ChatbotSecurityGate.isDomainRelevant("cara bikin nasi goreng enak"))
         assertFalse(ChatbotSecurityGate.isDomainRelevant("buatkan kode python scraping web"))
@@ -40,20 +66,17 @@ class ChatbotSecurityGateTest {
     }
 
     @Test
-    fun evaluateMessage_rateLimiting_rejectsTooFastMessages() {
+    fun evaluateMessage_rateLimiterDisabled_allowsRapidRelevantMessages() {
         val baseTime = 1000000L
         val state = SecurityGateState(lastMessageTimestamp = baseTime)
 
-        // Sending after only 500 ms (< 2000 ms cooldown)
         val result = ChatbotSecurityGate.evaluateMessage(
             message = "Gigi saya ngilu",
             currentTimeMillis = baseTime + 500L,
             state = state
         )
 
-        assertTrue(result is SecurityEvaluationResult.RejectedSpam)
-        val spam = result as SecurityEvaluationResult.RejectedSpam
-        assertEquals(2L, spam.waitSeconds)
+        assertTrue(result is SecurityEvaluationResult.Allowed)
     }
 
     @Test
@@ -74,47 +97,38 @@ class ChatbotSecurityGateTest {
 
         assertTrue(result is SecurityEvaluationResult.Allowed)
         val allowed = result as SecurityEvaluationResult.Allowed
-        // Should reset violations on valid message
         assertEquals(0, allowed.updatedState.violationCount)
     }
 
     @Test
-    fun evaluateMessage_outOfScopeViolations_escalateToLevel1SuspensionOn3rdStrike() {
+    fun evaluateMessage_outOfScope_rejectsWithoutSuspendingWhenBlockingDisabled() {
         val baseTime = 1000000L
         var state = SecurityGateState(lastMessageTimestamp = 0L)
 
-        // Strike 1
-        val result1 = ChatbotSecurityGate.evaluateMessage("cara bikin nasi goreng", baseTime, state)
-        assertTrue(result1 is SecurityEvaluationResult.RejectedOutOfScope)
-        val out1 = result1 as SecurityEvaluationResult.RejectedOutOfScope
-        assertEquals(1, out1.currentViolations)
-        assertEquals(3, out1.maxViolations)
-        state = out1.updatedState
-
-        // Strike 2
-        val result2 = ChatbotSecurityGate.evaluateMessage("siapa presiden amerika", baseTime + 3000L, state)
-        assertTrue(result2 is SecurityEvaluationResult.RejectedOutOfScope)
-        val out2 = result2 as SecurityEvaluationResult.RejectedOutOfScope
-        assertEquals(2, out2.currentViolations)
-        state = out2.updatedState
-
-        // Strike 3 -> Suspended 24 hours (Level 1)
-        val result3 = ChatbotSecurityGate.evaluateMessage("buatkan kode python", baseTime + 6000L, state)
-        assertTrue(result3 is SecurityEvaluationResult.SuspendedNow)
-        val suspended = result3 as SecurityEvaluationResult.SuspendedNow
-        assertEquals(1, suspended.level)
-        assertFalse(suspended.isPermanent)
-        val expectedSuspensionUntil = (baseTime + 6000L) + ChatbotSecurityGate.SUSPENSION_24_HOURS_MS
-        assertEquals(expectedSuspensionUntil, suspended.updatedState.suspensionUntil)
-        assertEquals(1, suspended.updatedState.suspensionLevel)
+        // Percobaan 1, 2, 3, 4 di luar topik semuanya hanya ditolak, tidak memblokir akses
+        val prompts = listOf(
+            "cara bikin nasi goreng",
+            "siapa presiden amerika",
+            "buatkan kode python",
+            "jadwal bioskop"
+        )
+        prompts.forEachIndexed { idx, prompt ->
+            val result = ChatbotSecurityGate.evaluateMessage(prompt, baseTime + (idx * 3000L), state)
+            assertTrue(result is SecurityEvaluationResult.RejectedOutOfScope)
+            val rejected = result as SecurityEvaluationResult.RejectedOutOfScope
+            assertEquals(0, rejected.currentViolations)
+            assertEquals(0, rejected.updatedState.suspensionLevel)
+            assertEquals(0L, rejected.updatedState.suspensionUntil)
+            state = rejected.updatedState
+        }
     }
 
     @Test
-    fun evaluateMessage_activeSuspension_blocksAnyMessage() {
+    fun evaluateMessage_existingSuspensionState_ignoredWhenBlockingDisabled() {
         val baseTime = 1000000L
         val state = SecurityGateState(
             suspensionLevel = 1,
-            suspensionUntil = baseTime + 3600000L // 1 hour remaining
+            suspensionUntil = baseTime + 3600000L
         )
 
         val result = ChatbotSecurityGate.evaluateMessage(
@@ -123,60 +137,6 @@ class ChatbotSecurityGateTest {
             state = state
         )
 
-        assertTrue(result is SecurityEvaluationResult.Blocked)
-        val blocked = result as SecurityEvaluationResult.Blocked
-        assertEquals(3600000L, blocked.remainingMillis)
-        assertEquals(1, blocked.level)
-        assertFalse(blocked.isPermanent)
-        assertTrue(blocked.formattedRemainingTime.contains("60 menit") || blocked.formattedRemainingTime.contains("1 jam"))
-    }
-
-    @Test
-    fun evaluateMessage_repeatViolationAfterLevel1_escalatesToLevel2SevenDays() {
-        val baseTime = 1000000000L
-        // Level 1 suspension already expired
-        val state = SecurityGateState(
-            suspensionLevel = 1,
-            suspensionUntil = baseTime - 1000L,
-            violationCount = 0
-        )
-
-        // Repeat violation
-        val result = ChatbotSecurityGate.evaluateMessage(
-            message = "cara memperbaiki motor",
-            currentTimeMillis = baseTime,
-            state = state
-        )
-
-        assertTrue(result is SecurityEvaluationResult.SuspendedNow)
-        val suspended = result as SecurityEvaluationResult.SuspendedNow
-        assertEquals(2, suspended.level)
-        assertFalse(suspended.isPermanent)
-        val expectedUntil = baseTime + ChatbotSecurityGate.SUSPENSION_7_DAYS_MS
-        assertEquals(expectedUntil, suspended.updatedState.suspensionUntil)
-        assertEquals(2, suspended.updatedState.suspensionLevel)
-    }
-
-    @Test
-    fun evaluateMessage_repeatViolationAfterLevel2_escalatesToPermanentBlock() {
-        val baseTime = 1000000000L
-        // Level 2 suspension expired
-        val state = SecurityGateState(
-            suspensionLevel = 2,
-            suspensionUntil = baseTime - 1000L,
-            violationCount = 0
-        )
-
-        val result = ChatbotSecurityGate.evaluateMessage(
-            message = "jadwal bioskop",
-            currentTimeMillis = baseTime,
-            state = state
-        )
-
-        assertTrue(result is SecurityEvaluationResult.SuspendedNow)
-        val suspended = result as SecurityEvaluationResult.SuspendedNow
-        assertEquals(3, suspended.level)
-        assertTrue(suspended.isPermanent)
-        assertEquals(Long.MAX_VALUE, suspended.updatedState.suspensionUntil)
+        assertTrue(result is SecurityEvaluationResult.Allowed)
     }
 }

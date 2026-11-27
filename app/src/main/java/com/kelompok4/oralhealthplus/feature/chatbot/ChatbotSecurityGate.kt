@@ -72,6 +72,8 @@ sealed class SecurityEvaluationResult {
  *    - Pelanggaran ulang pasca-Level 2: Suspensi Level 3 (Permanen)
  */
 object ChatbotSecurityGate {
+    const val ENABLE_RATE_LIMITER = false
+    const val ENABLE_SUSPENSION_BLOCKING = false
     const val COOLDOWN_MS = 2000L
     const val MAX_WARNING_STRIKES = 3
     const val SUSPENSION_24_HOURS_MS = 24L * 60L * 60L * 1000L
@@ -88,6 +90,15 @@ object ChatbotSecurityGate {
         // Organ mulut
         "gigi", "gusi", "mulut", "lidah", "bibir", "rahang", "langit-langit", "tenggorokan",
         "pipi", "enamel", "pulpa", "dentin", "gusi berdarah", "saliva", "air liur",
+
+        // Label penyakit deteksi & istilah medis
+        "gingivitis", "caries", "calculus", "mouth ulcer", "ulcer",
+        "tooth discoloration", "discoloration", "hypodontia", "radang gusi",
+        "diskolorasi", "noda gigi",
+
+        // Konteks aplikasi & pemeriksaan
+        "scan", "hasil scan", "hasil deteksi", "deteksi", "triase", "klinik",
+        "perawatan", "gejala", "pencegahan", "penyakit", "urgensi",
 
         // Kondisi & Gejala
         "sakit", "nyeri", "ngilu", "linu", "senut", "berdenyut", "bengkak", "nanah", "abses",
@@ -137,8 +148,8 @@ object ChatbotSecurityGate {
         currentTimeMillis: Long,
         state: SecurityGateState
     ): SecurityEvaluationResult {
-        // 1. Cek apakah sedang dalam pemblokiran aktif
-        if (state.suspensionUntil > currentTimeMillis) {
+        // 1. Cek apakah sedang dalam pemblokiran aktif (jika fitur pemblokiran diaktifkan)
+        if (ENABLE_SUSPENSION_BLOCKING && state.suspensionUntil > currentTimeMillis) {
             val remaining = state.suspensionUntil - currentTimeMillis
             val isPermanent = state.suspensionUntil == Long.MAX_VALUE
             return SecurityEvaluationResult.Blocked(
@@ -150,21 +161,37 @@ object ChatbotSecurityGate {
             )
         }
 
-        // 2. Cek Rate Limiting Anti-Spam
-        val timeSinceLastMessage = currentTimeMillis - state.lastMessageTimestamp
-        if (state.lastMessageTimestamp > 0L && timeSinceLastMessage < COOLDOWN_MS) {
-            val remainingCooldownMs = COOLDOWN_MS - timeSinceLastMessage
-            val waitSec = ((remainingCooldownMs + 999L) / 1000L).coerceAtLeast(1L)
-            return SecurityEvaluationResult.RejectedSpam(
-                waitSeconds = waitSec,
-                message = "Mohon tunggu $waitSec detik sebelum mengirim pesan berikutnya."
-            )
+        // 2. Cek Rate Limiting Anti-Spam (jika fitur limiter diaktifkan)
+        if (ENABLE_RATE_LIMITER) {
+            val timeSinceLastMessage = currentTimeMillis - state.lastMessageTimestamp
+            if (state.lastMessageTimestamp > 0L && timeSinceLastMessage < COOLDOWN_MS) {
+                val remainingCooldownMs = COOLDOWN_MS - timeSinceLastMessage
+                val waitSec = ((remainingCooldownMs + 999L) / 1000L).coerceAtLeast(1L)
+                return SecurityEvaluationResult.RejectedSpam(
+                    waitSeconds = waitSec,
+                    message = "Mohon tunggu $waitSec detik sebelum mengirim pesan berikutnya."
+                )
+            }
         }
 
         // 3. Cek Relevansi Domain Gigi & Mulut
         val isRelevant = isDomainRelevant(message)
         if (!isRelevant) {
-            // Pelanggaran baru terdeteksi
+            if (!ENABLE_SUSPENSION_BLOCKING) {
+                // Pemblokiran dinonaktifkan: cukup tolak tanpa menghitung strike atau memblokir akses
+                val updated = state.copy(
+                    lastMessageTimestamp = currentTimeMillis,
+                    violationCount = 0
+                )
+                return SecurityEvaluationResult.RejectedOutOfScope(
+                    warningMessage = "Pertanyaan Anda di luar topik kesehatan gigi dan mulut. Silakan ajukan pertanyaan seputar gigi, gusi, atau mulut.",
+                    currentViolations = 0,
+                    maxViolations = MAX_WARNING_STRIKES,
+                    updatedState = updated
+                )
+            }
+
+            // Pelanggaran baru terdeteksi (mode pemblokiran aktif)
             val nextLevel = when {
                 state.suspensionLevel >= 2 -> 3 // Permanent ban
                 state.suspensionLevel == 1 -> 2 // 7 Days ban
